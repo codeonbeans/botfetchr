@@ -1,0 +1,17 @@
+env: "dev" # Available options: dev, staging, production
+
+app:
+  name: "BotInstaVK"
+
+telegram-bot:
+  token: "<your-telegram-bot-token>"
+
+log:
+  level: "debug" # debug, info, warn, error, dpanic, panic, fatal
+  stacktraceLevel: "error"
+  fileEnabled: true
+  fileSize: 10 # MB
+  filePath: "log/log.log"
+  fileCompress: false # enable log file compress before rotate
+  maxAge: 1 # days to keep log files
+  maxBackups: 10 # number of log files

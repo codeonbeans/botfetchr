@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"bot-vk-insta/internal/logger"
+	"botvideosaver/internal/logger"
 )
 
 // SagaStep defines a single step in a Saga.

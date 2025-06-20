@@ -3,7 +3,7 @@ package logger
 import (
 	"os"
 
-	"bot-vk-insta/config"
+	"botvideosaver/config"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

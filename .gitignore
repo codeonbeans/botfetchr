@@ -38,3 +38,7 @@ node_modules/
 public/
 package-lock.json
 .env.local
+
+prisma/schema.prisma
+package.json
+package-lock.json

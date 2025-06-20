@@ -24,7 +24,16 @@ type App struct {
 }
 
 type TelegramBot struct {
-	Token string `yaml:"token"`
+	Token string           `yaml:"token"`
+	Proxy TelegramBotProxy `yaml:"proxy"`
+}
+
+type TelegramBotProxy struct {
+	Type     string `yaml:"type"`     // "socks5", "http"
+	Address  string `yaml:"address"`  //
+	Port     int    `yaml:"port"`     // e.g: 1080
+	Username string `yaml:"username"` // optional
+	Password string `yaml:"password"` // optional
 }
 
 type Log struct {
@@ -39,6 +48,10 @@ type Log struct {
 }
 
 func GetConfig() *Config {
+	if config == nil {
+		SetConfig("config/config.dev.yml")
+	}
+
 	return config
 }
 

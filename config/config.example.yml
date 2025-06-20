@@ -1,10 +1,27 @@
 env: "dev" # Available options: dev, staging, production
 
 app:
-  name: "BotInstaVK"
+  name: "botvideosaver"
 
-telegram-bot:
+telegramBot:
   token: "<your-telegram-bot-token>"
+  proxy: # Optional proxy settings
+    type: "socks5" # Available options: socks5, mtproxy
+    address: ""
+    port: 1080
+    username: "" # Optional, for authenticated proxies
+    password: "" # Optional, for authenticated proxies
+
+postgres:
+  url: "" # "postgresql://doadmin:... Neither url nor host/port/database/username/password is set
+  host: "" # use "host.docker.internal" if you run app inside docker container
+  port: "5432"
+  database: ""
+  username: ""
+  password: ""
+  maxConnections: 8
+  maxIdleConnections: 10
+  logQuery: false
 
 log:
   level: "debug" # debug, info, warn, error, dpanic, panic, fatal

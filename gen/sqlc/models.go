@@ -11,6 +11,48 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type ResourceTypes string
+
+const (
+	ResourceTypesUSERAGENT ResourceTypes = "USER_AGENT"
+	ResourceTypesPROXY     ResourceTypes = "PROXY"
+)
+
+func (e *ResourceTypes) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ResourceTypes(s)
+	case string:
+		*e = ResourceTypes(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ResourceTypes: %T", src)
+	}
+	return nil
+}
+
+type NullResourceTypes struct {
+	ResourceTypes ResourceTypes
+	Valid         bool // Valid is true if ResourceTypes is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullResourceTypes) Scan(value interface{}) error {
+	if value == nil {
+		ns.ResourceTypes, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ResourceTypes.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullResourceTypes) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ResourceTypes), nil
+}
+
 type SubscriptionPlanIntervals string
 
 const (
@@ -98,7 +140,7 @@ func (ns NullSubscriptionStatuses) Value() (driver.Value, error) {
 }
 
 type AccountTelegram struct {
-	ID           string
+	ID           int64
 	TelegramID   int64
 	IsBot        bool
 	FirstName    string
@@ -110,19 +152,14 @@ type AccountTelegram struct {
 	CreatedAt    pgtype.Timestamptz
 }
 
-type AccountUserAgent struct {
-	UserAgent string
-	Good      bool
-}
-
-type SubscriptionBase struct {
-	ID        string
-	AccountID string
-	PlanID    string
-	Status    SubscriptionStatuses
-	StartDate pgtype.Timestamptz
-	EndDate   pgtype.Timestamptz
-	CancelAt  pgtype.Timestamptz
+type ResourceResource struct {
+	ID       int64
+	Resource string
+	Type     ResourceTypes
+	Attempts int32
+	Failed   int32
+	Disabled bool
+	LastUsed pgtype.Timestamptz
 }
 
 type SubscriptionInvoice struct {
@@ -139,4 +176,14 @@ type SubscriptionPlan struct {
 	Price       float64
 	Interval    SubscriptionPlanIntervals
 	Description pgtype.Text
+}
+
+type SubscriptionSubscription struct {
+	ID        string
+	AccountID int64
+	PlanID    string
+	Status    SubscriptionStatuses
+	StartDate pgtype.Timestamptz
+	EndDate   pgtype.Timestamptz
+	CancelAt  pgtype.Timestamptz
 }

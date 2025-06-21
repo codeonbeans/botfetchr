@@ -1,11 +1,11 @@
 -- name: GetSubscription :one
 SELECT subscription.*
-FROM "subscription"."base" subscription
+FROM "subscription"."subscriptions" subscription
 WHERE id = $1;
 
 -- name: CountSubscriptions :one
 SELECT COUNT(id)
-FROM "subscription"."base"
+FROM "subscription"."subscriptions"
 WHERE (
   (account_id = sqlc.narg('account_id') OR sqlc.narg('account_id') IS NULL) AND
   (plan_id = sqlc.narg('plan_id') OR sqlc.narg('plan_id') IS NULL) AND
@@ -20,7 +20,7 @@ WHERE (
 
 -- name: ListSubscriptions :many
 SELECT subscription.*
-FROM "subscription"."base" subscription
+FROM "subscription"."subscriptions" subscription
 WHERE (
   (account_id = sqlc.narg('account_id') OR sqlc.narg('account_id') IS NULL) AND
   (plan_id = sqlc.narg('plan_id') OR sqlc.narg('plan_id') IS NULL) AND
@@ -37,12 +37,12 @@ LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
 -- name: CreateSubscription :one
-INSERT INTO "subscription"."base" (account_id, plan_id, status, start_date, end_date, cancel_at)
+INSERT INTO "subscription"."subscriptions" (account_id, plan_id, status, start_date, end_date, cancel_at)
 VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: UpdateSubscription :one
-UPDATE "subscription"."base"
+UPDATE "subscription"."subscriptions"
 SET
   account_id = COALESCE(sqlc.narg('account_id'), account_id),
   plan_id = COALESCE(sqlc.narg('plan_id'), plan_id),
@@ -54,5 +54,5 @@ WHERE id = $1
 RETURNING *;
 
 -- name: DeleteSubscription :exec
-DELETE FROM "subscription"."base"
+DELETE FROM "subscription"."subscriptions"
 WHERE id = $1;

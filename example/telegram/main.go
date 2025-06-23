@@ -63,7 +63,7 @@ func main() {
 
 }
 
-var insta = instagram.NewClient()
+var insta, _ = instagram.NewClient("", nil)
 
 func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	fmt.Println("Received update:", update)

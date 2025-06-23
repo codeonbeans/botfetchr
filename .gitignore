@@ -42,3 +42,5 @@ package-lock.json
 prisma/schema.prisma
 package.json
 package-lock.json
+
+log/

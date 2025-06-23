@@ -1,102 +1,80 @@
 package instagram
 
 import (
+	"botvideosaver/internal/logger"
 	"fmt"
-	"log"
-	"os"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/corpix/uarand"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/devices"
-	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
 )
 
-type Client interface {
-	GetVideoURL(url string) (string, error)
-	GetVideoID(url string) (string, error)
-}
+const (
+	TIMEOUT = 10 * time.Second
+)
 
 type clientImpl struct {
-	m       *sync.Mutex
+	ua      string
 	browser *rod.Browser
 }
 
-func NewClient() Client {
-	c := &clientImpl{
-		m: &sync.Mutex{},
-	}
-	c.init()
-
-	return c
+func NewClient(ua string, browser *rod.Browser) (*clientImpl, error) {
+	return &clientImpl{
+		ua:      ua,
+		browser: browser,
+	}, nil
 }
 
-func (c *clientImpl) init() {
-	// Ensure the browser is initialized only once
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	chrome, found := launcher.LookPath()
-	if !found {
-		panic("could not find Chrome executable in PATH")
-	}
-
-	u := launcher.New().Bin(chrome).Headless(false).MustLaunch()
-	c.browser = rod.New().ControlURL(u).MustConnect()
-	c.browser.MustPage("about:blank").MustWaitStable()
-}
-
-func (c *clientImpl) GetVideoURL(url string) (string, error) {
-	goodUA := false
-
-	ua := uarand.GetRandom()
-
-	defer func() {
-		if !goodUA {
-			fmt.Println("User agent not good, retrying with a new one")
-			Append("bad_ua.txt", ua)
-		}
-	}()
-
-	fmt.Println("Page with user agent:", ua)
+func (c *clientImpl) getVideoUrlFallback(url string) (videoURL string, err error) {
+	logger.Log.Sugar().Infof("Opening page %s with user agent %s", url, c.ua)
 
 	page, cancel := c.browser.
 		MustPage(url).
 		MustSetUserAgent(&proto.NetworkSetUserAgentOverride{
-			// UserAgent: "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
-			UserAgent: uarand.GetRandom(),
+			UserAgent: c.ua,
 		}).
 		WithCancel()
 	defer page.Close()
 
-	fmt.Println("Emulating Nexus 5 device")
+	logger.Log.Sugar().Infof("Setting viewport for page %s", url)
 	page.MustSetViewport(devices.Nexus5.Screen.Vertical.Width, devices.Nexus5.Screen.Vertical.Height, 1, true)
 
-	page.MustReload().MustWaitStable()
-
-	fmt.Println("Waiting for video element")
 	go func() {
-		time.Sleep(2 * time.Second)
+		time.Sleep(TIMEOUT)
 		cancel()
 	}()
-	elem, err := page.Element("video")
-	if err != nil {
-		return "", fmt.Errorf("failed to find video element: %w", err)
-	}
 
-	fmt.Println("Getting video source URL")
-	src, err := elem.Attribute("src")
-	if err != nil {
-		return "", fmt.Errorf("failed to get video source attribute: %w", err)
-	}
+	page.MustReload()
 
-	Append("good_ua.txt", ua)
-	goodUA = true
+	logger.Log.Sugar().Infof("Waiting for video element on page %s", url)
+	elem := page.MustElement("video")
+
+	logger.Log.Sugar().Infof("Found video element on page %s", url)
+	src := elem.MustAttribute("src")
+
+	if src == nil {
+		return "", fmt.Errorf("video element has no src attribute")
+	}
 
 	return *src, nil
+}
+
+func (c *clientImpl) GetVideoURL(url string) (videoURL string, err error) {
+	code, err := ExtractShortCodeFromLink(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to extract shortcode from link: %w", err)
+	}
+
+	extractor := NewExtractor()
+	extract, err := extractor.GetPostWithCode(code)
+	if err != nil {
+		// If the extractor fails, try another method
+		return c.getVideoUrlFallback(url)
+	}
+
+	return extract.URL, err
 }
 
 func (c *clientImpl) GetVideoID(url string) (string, error) {
@@ -111,17 +89,7 @@ func (c *clientImpl) GetVideoID(url string) (string, error) {
 	return videoID, nil
 }
 
-func Append(path, text string) {
-	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatalf("failed to open file: %v", err)
-	}
-	defer file.Close()
-
-	data := fmt.Sprintf("%s\n", text)
-
-	// Write to the file
-	if _, err := file.WriteString(data); err != nil {
-		log.Fatalf("failed to write to file: %v", err)
-	}
+func (c *clientImpl) IsValidURL(url string) bool {
+	// Check if the URL is a valid Instagram video URL
+	return shortCodeRegex.Match([]byte(url))
 }

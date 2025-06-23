@@ -17,6 +17,8 @@ type Config struct {
 	App         App         `yaml:"app"`
 	TelegramBot TelegramBot `yaml:"telegramBot"`
 	Log         Log         `yaml:"log"`
+	Postgres    Postgres    `yaml:"postgres"`
+	BrowserPool BrowserPool `yaml:"browserPool"`
 }
 
 type App struct {
@@ -45,6 +47,23 @@ type Log struct {
 	FileCompress    bool   `yaml:"fileCompress"`
 	MaxAge          int    `yaml:"maxAge"`
 	MaxBackups      int    `yaml:"maxBackups"`
+}
+
+type Postgres struct {
+	Url             string `yaml:"url"`
+	Host            string `yaml:"host"`
+	Port            int    `yaml:"port"`
+	Username        string `yaml:"username"`
+	Password        string `yaml:"password"`
+	Database        string `yaml:"database"`
+	MaxConnections  int32  `yaml:"maxConnections"`
+	MaxConnIdleTime int32  `yaml:"maxConnIdleTime"`
+}
+
+type BrowserPool struct {
+	PoolSize      int      `yaml:"poolSize"`
+	Proxies       []string `yaml:"proxies"`
+	TaskQueueSize int      `yaml:"taskQueueSize"` // Buffer size for task channels
 }
 
 func GetConfig() *Config {

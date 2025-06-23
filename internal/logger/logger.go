@@ -9,7 +9,7 @@ import (
 var Log *zap.Logger
 var m sync.Mutex
 
-func InitLogger(logDriver string) {
+func InitLogger() {
 	m.Lock()
 	defer m.Unlock()
 

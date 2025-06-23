@@ -26,7 +26,12 @@ WHERE (
   (issued_at <= sqlc.narg('issued_at_to') OR sqlc.narg('issued_at_to') IS NULL) AND
   (paid = sqlc.narg('paid') OR sqlc.narg('paid') IS NULL)
 )
-ORDER BY sqlc.arg('order_by') DESC
+ORDER BY
+  CASE WHEN sqlc.arg('order_by')::text = 'id_asc' THEN id END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'id_desc' THEN id END DESC,
+  CASE WHEN sqlc.arg('order_by') = 'issued_at_asc' THEN issued_at END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'issued_at_desc' THEN issued_at END DESC,
+  issued_at DESC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 

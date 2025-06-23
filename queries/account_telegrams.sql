@@ -34,13 +34,29 @@ WHERE (
   (created_at >= sqlc.narg('created_at_from') OR sqlc.narg('created_at_from') IS NULL) AND
   (created_at <= sqlc.narg('created_at_to') OR sqlc.narg('created_at_to') IS NULL)
 )
-ORDER BY sqlc.arg('order_by') DESC
+ORDER BY
+  CASE WHEN sqlc.arg('order_by')::text = 'id_asc' THEN id END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'id_desc' THEN id END DESC,
+  CASE WHEN sqlc.arg('order_by') = 'telegram_id_asc' THEN telegram_id END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'telegram_id_desc' THEN telegram_id END DESC,
+  CASE WHEN sqlc.arg('order_by') = 'created_at_asc' THEN created_at END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'created_at_desc' THEN created_at END DESC,
+  created_at DESC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
 -- name: CreateAccountTelegram :one
 INSERT INTO "account"."telegrams" (telegram_id, is_bot, first_name, last_name, username, language_code, photo_url, is_premium)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+VALUES (
+  sqlc.arg('telegram_id'),
+  sqlc.arg('is_bot'),
+  sqlc.arg('first_name'),
+  sqlc.arg('last_name'),
+  sqlc.narg('username'),
+  sqlc.arg('language_code'),
+  sqlc.narg('photo_url'),
+  sqlc.arg('is_premium')
+)
 RETURNING *;
 
 -- name: UpdateAccountTelegram :one

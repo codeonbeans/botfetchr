@@ -46,7 +46,12 @@ func (q *Queries) CountPlans(ctx context.Context, arg CountPlansParams) (int64, 
 
 const createPlan = `-- name: CreatePlan :one
 INSERT INTO "subscription"."plans" (name, price, interval, description)
-VALUES ($1, $2, $3, $4)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4
+)
 RETURNING id, name, price, interval, description
 `
 
@@ -114,7 +119,12 @@ WHERE (
   (interval = $4 OR $4 IS NULL) AND
   (description ILIKE '%' || $5 || '%' OR $5 IS NULL)
 )
-ORDER BY $6 DESC
+ORDER BY
+  CASE WHEN $6::text = 'id_asc' THEN id END ASC,
+  CASE WHEN $6 = 'id_desc' THEN id END DESC,
+  CASE WHEN $6 = 'price_asc' THEN price END ASC,
+  CASE WHEN $6 = 'price_desc' THEN price END DESC,
+  id ASC
 LIMIT $8
 OFFSET $7
 `
@@ -125,7 +135,7 @@ type ListPlansParams struct {
 	PriceTo     pgtype.Float8
 	Interval    NullSubscriptionPlanIntervals
 	Description pgtype.Text
-	OrderBy     interface{}
+	OrderBy     string
 	Offset      int32
 	Limit       int32
 }

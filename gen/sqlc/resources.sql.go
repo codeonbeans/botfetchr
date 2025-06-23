@@ -144,7 +144,12 @@ WHERE (
   (failed <= $6 OR $6 IS NULL) AND
   (disabled = $7 OR $7 IS NULL)
 )
-ORDER BY $8 DESC
+ORDER BY
+  CASE WHEN $8::text = 'id_asc' THEN id END ASC,
+  CASE WHEN $8 = 'id_desc' THEN id END DESC,
+  CASE WHEN $8 = 'last_used_asc' THEN last_used END ASC,
+  CASE WHEN $8 = 'last_used_desc' THEN last_used END DESC,
+  id ASC
 LIMIT $10
 OFFSET $9
 `
@@ -157,7 +162,7 @@ type ListResourcesParams struct {
 	FailedFrom   pgtype.Int4
 	FailedTo     pgtype.Int4
 	Disabled     pgtype.Bool
-	OrderBy      interface{}
+	OrderBy      string
 	Offset       int32
 	Limit        int32
 }

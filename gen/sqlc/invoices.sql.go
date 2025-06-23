@@ -118,7 +118,12 @@ WHERE (
   (issued_at <= $5 OR $5 IS NULL) AND
   (paid = $6 OR $6 IS NULL)
 )
-ORDER BY $7 DESC
+ORDER BY
+  CASE WHEN $7::text = 'id_asc' THEN id END ASC,
+  CASE WHEN $7 = 'id_desc' THEN id END DESC,
+  CASE WHEN $7 = 'issued_at_asc' THEN issued_at END ASC,
+  CASE WHEN $7 = 'issued_at_desc' THEN issued_at END DESC,
+  issued_at DESC
 LIMIT $9
 OFFSET $8
 `
@@ -130,7 +135,7 @@ type ListInvoicesParams struct {
 	IssuedAtFrom   pgtype.Timestamptz
 	IssuedAtTo     pgtype.Timestamptz
 	Paid           pgtype.Bool
-	OrderBy        interface{}
+	OrderBy        string
 	Offset         int32
 	Limit          int32
 }

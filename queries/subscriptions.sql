@@ -32,13 +32,29 @@ WHERE (
   (cancel_at >= sqlc.narg('cancel_at_from') OR sqlc.narg('cancel_at_from') IS NULL) AND
   (cancel_at <= sqlc.narg('cancel_at_to') OR sqlc.narg('cancel_at_to') IS NULL)
 )
-ORDER BY sqlc.arg('order_by') DESC
+ORDER BY
+  CASE WHEN sqlc.arg('order_by')::text = 'id_asc' THEN id END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'id_desc' THEN id END DESC,
+  CASE WHEN sqlc.arg('order_by') = 'start_date_asc' THEN start_date END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'start_date_desc' THEN start_date END DESC,
+  CASE WHEN sqlc.arg('order_by') = 'end_date_asc' THEN end_date END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'end_date_desc' THEN end_date END DESC,
+  CASE WHEN sqlc.arg('order_by') = 'cancel_at_asc' THEN cancel_at END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'cancel_at_desc' THEN cancel_at END DESC,
+  start_date DESC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
 -- name: CreateSubscription :one
 INSERT INTO "subscription"."subscriptions" (account_id, plan_id, status, start_date, end_date, cancel_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES (
+  sqlc.arg('account_id'),
+  sqlc.arg('plan_id'),
+  sqlc.arg('status'),
+  sqlc.arg('start_date'),
+  sqlc.narg('end_date'),
+  sqlc.narg('cancel_at')
+)
 RETURNING *;
 
 -- name: UpdateSubscription :one

@@ -58,7 +58,14 @@ func (q *Queries) CountSubscriptions(ctx context.Context, arg CountSubscriptions
 
 const createSubscription = `-- name: CreateSubscription :one
 INSERT INTO "subscription"."subscriptions" (account_id, plan_id, status, start_date, end_date, cancel_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6
+)
 RETURNING id, account_id, plan_id, status, start_date, end_date, cancel_at
 `
 
@@ -138,7 +145,16 @@ WHERE (
   (cancel_at >= $8 OR $8 IS NULL) AND
   (cancel_at <= $9 OR $9 IS NULL)
 )
-ORDER BY $10 DESC
+ORDER BY
+  CASE WHEN $10::text = 'id_asc' THEN id END ASC,
+  CASE WHEN $10 = 'id_desc' THEN id END DESC,
+  CASE WHEN $10 = 'start_date_asc' THEN start_date END ASC,
+  CASE WHEN $10 = 'start_date_desc' THEN start_date END DESC,
+  CASE WHEN $10 = 'end_date_asc' THEN end_date END ASC,
+  CASE WHEN $10 = 'end_date_desc' THEN end_date END DESC,
+  CASE WHEN $10 = 'cancel_at_asc' THEN cancel_at END ASC,
+  CASE WHEN $10 = 'cancel_at_desc' THEN cancel_at END DESC,
+  start_date DESC
 LIMIT $12
 OFFSET $11
 `
@@ -153,7 +169,7 @@ type ListSubscriptionsParams struct {
 	EndDateTo     pgtype.Timestamptz
 	CancelAtFrom  pgtype.Timestamptz
 	CancelAtTo    pgtype.Timestamptz
-	OrderBy       interface{}
+	OrderBy       string
 	Offset        int32
 	Limit         int32
 }

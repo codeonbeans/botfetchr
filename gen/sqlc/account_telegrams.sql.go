@@ -61,7 +61,16 @@ func (q *Queries) CountAccountTelegrams(ctx context.Context, arg CountAccountTel
 
 const createAccountTelegram = `-- name: CreateAccountTelegram :one
 INSERT INTO "account"."telegrams" (telegram_id, is_bot, first_name, last_name, username, language_code, photo_url, is_premium)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+VALUES (
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7,
+  $8
+)
 RETURNING id, telegram_id, is_bot, first_name, last_name, username, language_code, photo_url, is_premium, created_at
 `
 
@@ -152,7 +161,14 @@ WHERE (
   (created_at >= $9 OR $9 IS NULL) AND
   (created_at <= $10 OR $10 IS NULL)
 )
-ORDER BY $11 DESC
+ORDER BY
+  CASE WHEN $11::text = 'id_asc' THEN id END ASC,
+  CASE WHEN $11 = 'id_desc' THEN id END DESC,
+  CASE WHEN $11 = 'telegram_id_asc' THEN telegram_id END ASC,
+  CASE WHEN $11 = 'telegram_id_desc' THEN telegram_id END DESC,
+  CASE WHEN $11 = 'created_at_asc' THEN created_at END ASC,
+  CASE WHEN $11 = 'created_at_desc' THEN created_at END DESC,
+  created_at DESC
 LIMIT $13
 OFFSET $12
 `
@@ -168,7 +184,7 @@ type ListAccountTelegramsParams struct {
 	IsPremium     pgtype.Bool
 	CreatedAtFrom pgtype.Timestamptz
 	CreatedAtTo   pgtype.Timestamptz
-	OrderBy       interface{}
+	OrderBy       string
 	Offset        int32
 	Limit         int32
 }

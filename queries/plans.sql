@@ -24,13 +24,23 @@ WHERE (
   (interval = sqlc.narg('interval') OR sqlc.narg('interval') IS NULL) AND
   (description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL)
 )
-ORDER BY sqlc.arg('order_by') DESC
+ORDER BY
+  CASE WHEN sqlc.arg('order_by')::text = 'id_asc' THEN id END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'id_desc' THEN id END DESC,
+  CASE WHEN sqlc.arg('order_by') = 'price_asc' THEN price END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'price_desc' THEN price END DESC,
+  id ASC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
 -- name: CreatePlan :one
 INSERT INTO "subscription"."plans" (name, price, interval, description)
-VALUES ($1, $2, $3, $4)
+VALUES (
+  sqlc.arg('name'),
+  sqlc.arg('price'),
+  sqlc.arg('interval'),
+  sqlc.narg('description')
+)
 RETURNING *;
 
 -- name: UpdatePlan :one

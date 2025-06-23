@@ -31,7 +31,12 @@ WHERE (
   (failed <= sqlc.narg('failed_to') OR sqlc.narg('failed_to') IS NULL) AND
   (disabled = sqlc.narg('disabled') OR sqlc.narg('disabled') IS NULL)
 )
-ORDER BY sqlc.arg('order_by') DESC
+ORDER BY
+  CASE WHEN sqlc.arg('order_by')::text = 'id_asc' THEN id END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'id_desc' THEN id END DESC,
+  CASE WHEN sqlc.arg('order_by') = 'last_used_asc' THEN last_used END ASC,
+  CASE WHEN sqlc.arg('order_by') = 'last_used_desc' THEN last_used END DESC,
+  id ASC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 

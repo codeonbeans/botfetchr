@@ -15,6 +15,12 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
+type VideoResult struct {
+	ID    string
+	State string
+	Media io.ReadCloser
+}
+
 func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) error {
 	lines := strings.Split(update.Message.Text, "\n")
 
@@ -52,7 +58,7 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) error {
 							},
 						})
 						if err != nil {
-							fmt.Println(err)
+							logger.Log.Sugar().Errorf("Failed to send media group: %v", err)
 						}
 
 						_, err = b.bot.DeleteMessage(ctx, &bot.DeleteMessageParams{
@@ -60,17 +66,20 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) error {
 							MessageID: statusMsg.ID,
 						})
 						if err != nil {
-							fmt.Println(err)
+							logger.Log.Sugar().Errorf("Failed to delete status message: %v", err)
 						}
 
-						result.Media.Close()
-						close(updateMessageChan)
+						result.Media.Close()     // Close the media stream (request body)
+						close(updateMessageChan) // Close the channel to signal completion
 					} else {
-						b.bot.EditMessageText(ctx, &bot.EditMessageTextParams{
+						_, err := b.bot.EditMessageText(ctx, &bot.EditMessageTextParams{
 							ChatID:    update.Message.Chat.ID,
 							MessageID: statusMsg.ID,
 							Text:      fmt.Sprintf("%d. [%s]\nState: %s", i+1, url, result.State),
 						})
+						if err != nil {
+							logger.Log.Sugar().Errorf("Failed to edit message text: %v", err)
+						}
 					}
 				}
 			}()
@@ -108,17 +117,17 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 
 		videoID, err = saver.GetVideoID(url)
 		if err != nil {
-			return fmt.Errorf("failed to get video ID for %s: %w", url, err)
+			return fmt.Errorf("failed to get video ID: %w", err)
 		}
 
 		directUrl, err = saver.GetVideoURL(url)
 		if err != nil {
-			return fmt.Errorf("failed to get video URL for %s: %w", url, err)
+			return fmt.Errorf("failed to get direct video URL: %w", err)
 		}
 
 		return nil
 	}); err != nil {
-		return fmt.Errorf("failed to process URL %s: %w", url, err)
+		return err
 	}
 
 	updateMessageChan <- VideoResult{
@@ -127,7 +136,7 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 
 	req, err := http.NewRequest("GET", directUrl, nil)
 	if err != nil {
-		return fmt.Errorf("failed to download video from %s: %w", url, err)
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	// Mimic a real browser
@@ -135,7 +144,7 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to download video from %s: %w", url, err)
+		return fmt.Errorf("failed to download video: %w", err)
 	}
 
 	updateMessageChan <- VideoResult{
@@ -145,10 +154,4 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 	}
 
 	return nil
-}
-
-type VideoResult struct {
-	ID    string
-	State string
-	Media io.ReadCloser
 }

@@ -5,14 +5,12 @@ import (
 	tgbot "botvideosaver/internal/bot"
 	"botvideosaver/internal/client/pgxpool"
 	"botvideosaver/internal/logger"
+	"botvideosaver/internal/storage"
 	"context"
 )
 
-func init() {
-	logger.InitLogger()
-}
-
 func main() {
+	logger.InitLogger()
 
 	db, err := pgxpool.NewPgxpool(pgxpool.PgxpoolOptions{
 		Url:             config.GetConfig().Postgres.Url,
@@ -25,11 +23,11 @@ func main() {
 		MaxConnIdleTime: config.GetConfig().Postgres.MaxConnIdleTime,
 	})
 	if err != nil {
-		logger.Log.Sugar().Fatalf("Failed to connect to database: %v", err)
+		logger.Log.Sugar().Errorf("Failed to connect to database: %v", err)
 	}
 
 	if err = db.Ping(context.Background()); err != nil {
-		logger.Log.Sugar().Fatalf("Failed to ping database: %v", err)
+		logger.Log.Sugar().Errorf("Failed to ping database: %v", err)
 	}
 
 	logger.Log.Sugar().Infof("Connected to database %s at %s:%d",
@@ -38,7 +36,9 @@ func main() {
 		config.GetConfig().Postgres.Port,
 	)
 
-	b, err := tgbot.New(db)
+	store := storage.NewStorage(db)
+
+	b, err := tgbot.New(store)
 	if err != nil {
 		panic(err)
 	}

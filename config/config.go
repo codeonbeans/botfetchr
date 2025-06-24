@@ -26,11 +26,13 @@ type App struct {
 }
 
 type TelegramBot struct {
-	Token string           `yaml:"token"`
-	Proxy TelegramBotProxy `yaml:"proxy"`
+	Token    string           `yaml:"token"`
+	LogDebug bool             `yaml:"logDebug"`
+	Proxy    TelegramBotProxy `yaml:"proxy"`
 }
 
 type TelegramBotProxy struct {
+	Enabled  bool   `yaml:"enabled"`  // true or false
 	Type     string `yaml:"type"`     // "socks5", "http"
 	Address  string `yaml:"address"`  //
 	Port     int    `yaml:"port"`     // e.g: 1080

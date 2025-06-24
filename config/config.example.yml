@@ -5,7 +5,9 @@ app:
 
 telegramBot:
   token: "<your-telegram-bot-token>"
+  logDebug: false
   proxy: # Optional proxy settings
+    enabled: false # Set to true if you want to use a proxy for Telegram Bot API requests
     type: "socks5" # Available options: socks5, mtproxy
     address: ""
     port: 1080

@@ -4,7 +4,6 @@ import (
 	"botvideosaver/config"
 	"botvideosaver/internal/client/browserpool"
 	"botvideosaver/internal/client/instagram"
-	"botvideosaver/internal/client/pgxpool"
 	"botvideosaver/internal/client/vk"
 	"botvideosaver/internal/logger"
 	"botvideosaver/internal/storage"
@@ -29,51 +28,64 @@ type VideoSaver interface {
 
 type VideoSaverFactory func(ua string, browser *rod.Browser) (VideoSaver, error)
 
-type DefaultBot struct {
-	bot           *bot.Bot
-	storage       *storage.Storage
-	clientFactory map[SaverType]VideoSaverFactory
-	browserPool   browserpool.Client
+var videoSaverFactory = map[SaverType]VideoSaverFactory{
+	SaverTypeInstagram: func(ua string, browser *rod.Browser) (VideoSaver, error) {
+		return instagram.NewClient(ua, browser)
+	},
+	SaverTypeVK: func(ua string, browser *rod.Browser) (VideoSaver, error) {
+		return vk.NewClient(ua, browser)
+	},
 }
 
-func New(db pgxpool.DBTX) (*DefaultBot, error) {
-	address := fmt.Sprintf(
-		"%s:%d",
-		config.GetConfig().TelegramBot.Proxy.Address,
-		config.GetConfig().TelegramBot.Proxy.Port,
+type DefaultBot struct {
+	bot         *bot.Bot
+	storage     *storage.Storage
+	browserPool browserpool.Client
+}
+
+func New(store *storage.Storage) (*DefaultBot, error) {
+	logger.Log.Sugar().Info("Initializing bot...")
+
+	var httpClient *http.Client
+
+	// Check if proxy is enabled in the configuration
+	if config.GetConfig().TelegramBot.Proxy.Enabled {
+		address := fmt.Sprintf(
+			"%s:%d",
+			config.GetConfig().TelegramBot.Proxy.Address,
+			config.GetConfig().TelegramBot.Proxy.Port,
+		)
+		username := config.GetConfig().TelegramBot.Proxy.Username
+		password := config.GetConfig().TelegramBot.Proxy.Password
+
+		dialer, err := proxy.SOCKS5("tcp", address, &proxy.Auth{
+			User:     username,
+			Password: password,
+		}, proxy.Direct)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create SOCKS5 dialer: %w", err)
+		}
+
+		httpClient = &http.Client{
+			Transport: &http.Transport{
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					return dialer.Dial(network, addr)
+				},
+			},
+		}
+	} else {
+		httpClient = http.DefaultClient
+	}
+
+	var (
+		err        error
+		defaultBot = &DefaultBot{}
 	)
-	username := config.GetConfig().TelegramBot.Proxy.Username
-	password := config.GetConfig().TelegramBot.Proxy.Password
 
-	dialer, err := proxy.SOCKS5("tcp", address, &proxy.Auth{
-		User:     username,
-		Password: password,
-	}, proxy.Direct)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create SOCKS5 dialer: %w", err)
-	}
+	// Assign storage
+	defaultBot.storage = store
 
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				return dialer.Dial(network, addr)
-			},
-		},
-	}
-
-	defaultBot := &DefaultBot{
-		clientFactory: map[SaverType]VideoSaverFactory{
-			SaverTypeInstagram: func(ua string, browser *rod.Browser) (VideoSaver, error) {
-				return instagram.NewClient(ua, browser)
-			},
-			SaverTypeVK: func(ua string, browser *rod.Browser) (VideoSaver, error) {
-				return vk.NewClient(ua, browser)
-			},
-		},
-		storage: storage.NewStorage(db),
-	}
-
-	defaultBot.bot, err = bot.New(config.GetConfig().TelegramBot.Token, []bot.Option{
+	opts := []bot.Option{
 		bot.WithDefaultHandler(func(ctx context.Context, bot *bot.Bot, update *models.Update) {
 			// add recover panic here
 			defer func() {
@@ -87,12 +99,19 @@ func New(db pgxpool.DBTX) (*DefaultBot, error) {
 		}),
 		bot.WithHTTPClient(time.Minute, httpClient),
 		bot.WithDebugHandler(logger.Log.Sugar().Debugf),
-		// bot.WithDebug(),
-	}...)
+	}
+
+	if config.GetConfig().TelegramBot.LogDebug {
+		opts = append(opts, bot.WithDebug())
+	}
+
+	// Assign bot client
+	defaultBot.bot, err = bot.New(config.GetConfig().TelegramBot.Token, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bot client: %w", err)
 	}
 
+	// Assign browser pool
 	defaultBot.browserPool, err = browserpool.NewClient(browserpool.Config{
 		Proxies:       config.GetConfig().BrowserPool.Proxies,
 		PoolSize:      config.GetConfig().BrowserPool.PoolSize,
@@ -106,7 +125,7 @@ func New(db pgxpool.DBTX) (*DefaultBot, error) {
 }
 
 func (b *DefaultBot) GetVideoSaver(url string, ua string, browser *rod.Browser) (VideoSaver, error) {
-	for saverType, factory := range b.clientFactory {
+	for saverType, factory := range videoSaverFactory {
 		client, err := factory(ua, browser)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create client for type %s: %w", saverType, err)

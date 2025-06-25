@@ -32,7 +32,7 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) error {
 			// Send initial status message for this URL
 			statusMsg, _ := b.bot.SendMessage(ctx, &bot.SendMessageParams{
 				ChatID: update.Message.Chat.ID,
-				Text:   fmt.Sprintf("%d. [%s]\nState: ⌛ queued...", i+1, url),
+				Text:   fmt.Sprintf("%d. %s\nState: ⌛ queued...", i+1, url),
 				ReplyParameters: &models.ReplyParameters{
 					MessageID: update.Message.ID,
 				},
@@ -54,7 +54,7 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) error {
 						inputVideo := &models.InputMediaVideo{
 							Media:           fmt.Sprintf("attach://%s.mp4", result.ID),
 							MediaAttachment: result.Media,
-							Caption:         fmt.Sprintf("%d. [%s]\nState: %s", i+1, url, result.State),
+							Caption:         fmt.Sprintf("%d. %s\nState: %s", i+1, url, result.State),
 						}
 
 						_, err := b.bot.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
@@ -82,7 +82,7 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) error {
 						_, err := b.bot.EditMessageText(ctx, &bot.EditMessageTextParams{
 							ChatID:    update.Message.Chat.ID,
 							MessageID: statusMsg.ID,
-							Text:      fmt.Sprintf("%d. [%s]\nState: %s", i+1, url, result.State),
+							Text:      fmt.Sprintf("%d. %s\nState: %s", i+1, url, result.State),
 							LinkPreviewOptions: &models.LinkPreviewOptions{
 								IsDisabled: ptr.ToPtr(true),
 							},

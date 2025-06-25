@@ -14,6 +14,15 @@ telegramBot:
     username: "" # Optional, for authenticated proxies
     password: "" # Optional, for authenticated proxies
 
+videoSaver:
+  useRandomUA: true # Use random user agent for each request
+  userAgents: # List of user agents to use if useRandomUA is false, if this also empty, fallback to use random user agent
+    - "Mozilla/4.0 (compatible; MSIE 5.0; Series80/2.0 Nokia9500/4.51 Profile/MIDP-2.0 Configuration/CLDC-1.1)"
+    - "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.1; Trident/4.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; Media Center PC 6.0; Maxthon 2.0)"
+  quality: "high" # Available options: low, high
+  retryCount: 3 # Number of retries for failed downloads
+  timeout: 30 # Timeout in seconds for each download
+
 postgres:
   url: "" # "postgresql://doadmin:... Neither url nor host/port/database/username/password is set
   host: "" # use "host.docker.internal" if you run app inside docker container
@@ -26,6 +35,7 @@ postgres:
   logQuery: false
 
 browserpool:
+  headless: true # Run browser in headless mode, set to false if you want to see the browser UI
   poolSize: 10 # Number of browser instances to run concurrently
   proxies: [] # List of proxy URLs to use for browser instances, equals or less than poolSize (protocol://username:password@host:port)
   taskQueueSize: 5 # Maximum number of tasks each browser instance can handle concurrently

@@ -16,6 +16,7 @@ type Config struct {
 	Env         string      `yaml:"env"`
 	App         App         `yaml:"app"`
 	TelegramBot TelegramBot `yaml:"telegramBot"`
+	VideoSaver  VideoSaver  `yaml:"videoSaver"`
 	Log         Log         `yaml:"log"`
 	Postgres    Postgres    `yaml:"postgres"`
 	BrowserPool BrowserPool `yaml:"browserPool"`
@@ -29,6 +30,14 @@ type TelegramBot struct {
 	Token    string           `yaml:"token"`
 	LogDebug bool             `yaml:"logDebug"`
 	Proxy    TelegramBotProxy `yaml:"proxy"`
+}
+
+type VideoSaver struct {
+	UseRandomUA bool     `yaml:"useRandomUA"` // Use random user agent for
+	UserAgents  []string `yaml:"userAgents"`  // List of user agents to use if UseRandomUA is false
+	Quality     string   `yaml:"quality"`     // Available options: low, high
+	RetryCount  int      `yaml:"retryCount"`  // Number of retries for failed
+	Timeout     int      `yaml:"timeout"`     // Timeout in seconds for each download
 }
 
 type TelegramBotProxy struct {
@@ -63,6 +72,7 @@ type Postgres struct {
 }
 
 type BrowserPool struct {
+	Headless      bool     `yaml:"headless"` // Whether to run browsers in headless mode
 	PoolSize      int      `yaml:"poolSize"`
 	Proxies       []string `yaml:"proxies"`
 	TaskQueueSize int      `yaml:"taskQueueSize"` // Buffer size for task channels

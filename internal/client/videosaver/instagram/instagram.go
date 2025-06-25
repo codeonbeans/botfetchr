@@ -30,14 +30,21 @@ func NewClient(browser *rod.Browser) *clientImpl {
 func (c *clientImpl) GetVideoURL(ctx context.Context, url string) (videoURL string, err error) {
 	logger.Log.Sugar().Infof("Opening page %s with user agent %s", url, c.UA)
 
-	page := c.Browser.
+	fmt.Println("Opening page with user agent:", c.UA, "and timeout:", c.Timeout)
+
+	page, cancel := c.Browser.
+		Context(ctx).
 		MustPage(url).
 		MustSetUserAgent(&proto.NetworkSetUserAgentOverride{
 			UserAgent: c.UA,
 		}).
-		Timeout(c.Timeout).
-		Context(ctx)
+		WithCancel()
 	defer page.Close()
+
+	go func() {
+		time.Sleep(c.Timeout)
+		cancel()
+	}()
 
 	logger.Log.Sugar().Infof("Setting viewport for page %s", url)
 	page.MustSetViewport(devices.Nexus5.Screen.Vertical.Width, devices.Nexus5.Screen.Vertical.Height, 1, true)

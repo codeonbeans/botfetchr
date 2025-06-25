@@ -33,14 +33,19 @@ func (c *clientImpl) GetVideoURL(ctx context.Context, urlText string) (videoURL 
 
 	logger.Log.Sugar().Infof("Opening page %s with user agent %s", embedUrl, c.UA)
 
-	page := c.Browser.
+	page, cancel := c.Browser.
+		Context(ctx).
 		MustPage(embedUrl).
 		MustSetUserAgent(&proto.NetworkSetUserAgentOverride{
 			UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
 		}).
-		Timeout(c.Timeout).
-		Context(ctx)
+		WithCancel()
 	defer page.Close()
+
+	go func() {
+		time.Sleep(c.Timeout)
+		cancel()
+	}()
 
 	page.MustReload()
 

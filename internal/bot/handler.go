@@ -1,6 +1,7 @@
 package tgbot
 
 import (
+	"botvideosaver/config"
 	"botvideosaver/internal/client/browserpool"
 	"botvideosaver/internal/logger"
 	"botvideosaver/internal/utils/common"
@@ -105,8 +106,7 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) error {
 }
 
 func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) error {
-	retryState := []string{}
-	attempts := 3
+	attempts := config.GetConfig().VideoSaver.RetryCount
 
 	if err := common.DoWithRetry(common.RetryConfig{
 		Attempts: attempts,
@@ -140,12 +140,6 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 
 			return nil
 		}); err != nil {
-			retryState = append(retryState, fmt.Sprintf("Attempt (%d/%d): %s", len(retryState)+1, attempts, err.Error()))
-
-			updateMessageChan <- VideoResult{
-				State: fmt.Sprintf("⚠️ getting video info failed, retrying...\n%s", strings.Join(retryState, "\n")),
-			}
-
 			return err
 		}
 
@@ -170,7 +164,7 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return fmt.Errorf("failed to download video: %w", err)
+			return fmt.Errorf("failed to download video (%s): %w", sizeMBStr, err)
 		}
 
 		updateMessageChan <- VideoResult{
@@ -180,7 +174,7 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 		updateMessageChan <- VideoResult{
 			ID:    videoID,
 			Media: resp.Body,
-			State: "✅ get video successfully",
+			State: fmt.Sprintf("✅ get video successfully (%s)", sizeMBStr),
 		}
 
 		return nil

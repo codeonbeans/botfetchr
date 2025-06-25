@@ -30,7 +30,6 @@ type VideoSaver interface {
 
 	SetUserAgent(ua string)
 	SetQuality(quality string)
-	SetRetryCount(count int)
 	SetTimeout(timeout time.Duration)
 }
 
@@ -183,6 +182,5 @@ func configVideoSaver(videoSaver VideoSaver) {
 
 	videoSaver.SetUserAgent(getUA())
 	videoSaver.SetQuality(config.GetConfig().VideoSaver.Quality)
-	videoSaver.SetRetryCount(config.GetConfig().VideoSaver.RetryCount)
 	videoSaver.SetTimeout(time.Duration(config.GetConfig().VideoSaver.Timeout) * time.Second)
 }

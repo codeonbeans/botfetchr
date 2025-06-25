@@ -3,29 +3,39 @@ package browserpool
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
 	"sync"
 	"sync/atomic"
+	"syscall"
+	"time"
 )
 
+const resetThreshold = 1000000
+
 type Client interface {
-	UseBrowser(fn func(browser *Browser) error) error
+	UseBrowser(fn func(ctx context.Context, browser *Browser) error) error
 	Close() error
 }
 
 type clientImpl struct {
-	browsers   []*Browser
-	taskChans  []chan func(browser *Browser) error
-	ctx        context.Context
-	cancel     context.CancelFunc
-	wg         sync.WaitGroup
-	closed     int32
-	roundRobin int64
+	ctx    context.Context
+	wg     sync.WaitGroup
+	cancel context.CancelFunc
+
+	taskTimeout time.Duration // Timeout for tasks
+	browsers    []*Browser
+	taskChans   []chan func()
+	closed      int32
+	roundRobin  uint64 // For round-robin browser selection
 }
 
 type Config struct {
-	Proxies       []string
-	PoolSize      int
-	TaskQueueSize int // Buffer size for task channels
+	Headless      bool          // Whether to run browsers in headless mode
+	Proxies       []string      // List of proxies to use for browsers, can be empty
+	PoolSize      int           // Number of browsers in the pool
+	TaskQueueSize int           // Buffer size for task channels
+	TaskTimeout   time.Duration // Timeout for tasks
 }
 
 func NewClient(cfg Config) (Client, error) {
@@ -39,11 +49,24 @@ func NewClient(cfg Config) (Client, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	client := &clientImpl{
-		browsers:  make([]*Browser, 0, cfg.PoolSize),
-		taskChans: make([]chan func(browser *Browser) error, 0, cfg.PoolSize),
-		ctx:       ctx,
-		cancel:    cancel,
+		ctx:         ctx,
+		cancel:      cancel,
+		taskTimeout: cfg.TaskTimeout,
+		browsers:    make([]*Browser, 0, cfg.PoolSize),
+		taskChans:   make([]chan func(), 0, cfg.PoolSize),
 	}
+
+	go func() {
+		// Wait for interrupt signal
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
+		fmt.Println("Received shutdown signal, closing all browsers...")
+		if err := client.Close(); err != nil {
+			fmt.Printf("Error closing browsers: %v\n", err)
+		}
+		os.Exit(0)
+	}()
 
 	// Create browsers and their corresponding task channels
 	for i := 0; i < cfg.PoolSize; i++ {
@@ -52,54 +75,69 @@ func NewClient(cfg Config) (Client, error) {
 			proxy = cfg.Proxies[i]
 		}
 
-		browser, err := NewBrowser(proxy)
+		browser, err := NewBrowser(cfg.Headless, proxy)
 		if err != nil {
 			// Clean up any already created browsers
 			client.Close()
 			return nil, fmt.Errorf("failed to create browser %d: %w", i, err)
 		}
 
-		taskChan := make(chan func(browser *Browser) error, cfg.TaskQueueSize)
+		taskChan := make(chan func(), cfg.TaskQueueSize)
 
 		client.browsers = append(client.browsers, browser)
 		client.taskChans = append(client.taskChans, taskChan)
 
 		// Start worker goroutine for this browser
 		client.wg.Add(1)
-		go func(browser *Browser, taskChan chan func(browser *Browser) error) {
+		go func() {
 			defer client.wg.Done()
 			browser.Work(ctx, taskChan)
-		}(browser, taskChan)
+		}()
 	}
 
 	return client, nil
 }
 
-func (c *clientImpl) UseBrowser(fn func(browser *Browser) error) error {
+func (c *clientImpl) UseBrowser(fn func(ctx context.Context, browser *Browser) error) error {
 	if atomic.LoadInt32(&c.closed) == 1 {
 		return fmt.Errorf("client is closed")
 	}
 
-	index := atomic.AddInt64(&c.roundRobin, 1) % int64(len(c.taskChans))
+	index := atomic.AddUint64(&c.roundRobin, 1) % uint64(len(c.taskChans))
+	if atomic.LoadUint64(&c.roundRobin) > resetThreshold {
+		atomic.StoreUint64(&c.roundRobin, 0)
+	}
+
+	browser := c.browsers[index]
+	taskChan := c.taskChans[index]
 
 	// Create a channel to wait for task completion
-	resultChan := make(chan error, 1)
+	resultChan := make(chan error, 3)
 
-	task := func(browser *Browser) error {
-		err := fn(browser)
-		resultChan <- err
-		return err
+	taskChan <- func() {
+		// Make sure to recover from any panic in the task
+		// avoid stuck result channel
+		defer func() {
+			if r := recover(); r != nil {
+				resultChan <- fmt.Errorf("panic recovered: %v", r)
+			}
+			close(resultChan)
+		}()
+
+		// Timeout here not did not solve something, the task still be stucked btw. Should handle timeout in the task itself tho
+		// go func() {
+		// 	time.Sleep(c.taskTimeout)
+		// 	resultChan <- fmt.Errorf("task timed out")
+		// }()
+
+		resultChan <- fn(c.ctx, browser)
 	}
 
 	select {
-	case c.taskChans[index] <- task:
-		// Wait for task completion
-		err := <-resultChan
+	case err := <-resultChan:
 		return err
 	case <-c.ctx.Done():
 		return c.ctx.Err()
-	default:
-		return fmt.Errorf("task queue is full")
 	}
 }
 

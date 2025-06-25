@@ -24,7 +24,7 @@ type VideoResult struct {
 	Media io.ReadCloser
 }
 
-func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) error {
+func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) {
 	lines := strings.Split(update.Message.Text, "\n")
 
 	for i, url := range lines {
@@ -44,7 +44,10 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) error {
 			// Create update channel for editting message (via VideoResult)
 			// Always remember to close the channel whether it's successful or not
 			updateMessageChan := make(chan VideoResult)
-			defer close(updateMessageChan)
+			defer func() {
+				time.Sleep(30 * time.Second) // Give some time for final messages to be processed, for now it is for error handling of handleURL
+				close(updateMessageChan)
+			}()
 
 			// Create a goroutine to handle updates in channel updateMessageChan
 			go func() {
@@ -66,14 +69,27 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) error {
 						})
 						if err != nil {
 							logger.Log.Sugar().Errorf("Failed to send media group: %v", err)
-						}
 
-						_, err = b.bot.DeleteMessage(ctx, &bot.DeleteMessageParams{
-							ChatID:    update.Message.Chat.ID,
-							MessageID: statusMsg.ID,
-						})
-						if err != nil {
-							logger.Log.Sugar().Errorf("Failed to delete status message: %v", err)
+							state := fmt.Sprintf("❌ failed to send video: %v", err)
+							if _, err = b.bot.EditMessageText(ctx, &bot.EditMessageTextParams{
+								ChatID:    update.Message.Chat.ID,
+								MessageID: statusMsg.ID,
+								Text:      fmt.Sprintf("%d. %s\nState: %s", i+1, url, state),
+								LinkPreviewOptions: &models.LinkPreviewOptions{
+									IsDisabled: ptr.ToPtr(true),
+								},
+							}); err != nil {
+								logger.Log.Sugar().Errorf("Failed to edit message text: %v", err)
+							}
+						} else {
+							// Successfully sent video, now delete the status message
+							_, err = b.bot.DeleteMessage(ctx, &bot.DeleteMessageParams{
+								ChatID:    update.Message.Chat.ID,
+								MessageID: statusMsg.ID,
+							})
+							if err != nil {
+								logger.Log.Sugar().Errorf("Failed to delete status message: %v", err)
+							}
 						}
 
 						result.Media.Close() // Close the media stream (request body)
@@ -101,8 +117,6 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) error {
 			}
 		}(url)
 	}
-
-	return nil
 }
 
 func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) error {
@@ -151,7 +165,7 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 
 		updateMessageChan <- VideoResult{
 			// State: "⬇️ downloading video...",
-			State: fmt.Sprintf("⬇️ downloading video... (%s)", sizeMBStr),
+			State: fmt.Sprintf("⬇️ downloading video... (%s)\nOr you can download it manually: %s", sizeMBStr, directUrl),
 		}
 
 		req, err := http.NewRequest("GET", directUrl, nil)
@@ -168,7 +182,7 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 		}
 
 		updateMessageChan <- VideoResult{
-			State: fmt.Sprintf("➤ video downloaded (%s), sending video...", sizeMBStr),
+			State: fmt.Sprintf("➤ video downloaded (%s), sending video...\nOr you can download it manually: %s", sizeMBStr, directUrl),
 		}
 
 		updateMessageChan <- VideoResult{

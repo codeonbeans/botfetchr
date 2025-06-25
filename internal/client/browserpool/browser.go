@@ -17,7 +17,7 @@ type Browser struct {
 	Proxy string
 }
 
-func NewBrowser(proxy string) (*Browser, error) {
+func NewBrowser(headless bool, proxy string) (*Browser, error) {
 	chrome, found := launcher.LookPath()
 	if !found {
 		return nil, fmt.Errorf("could not find Chrome executable in PATH")
@@ -26,7 +26,7 @@ func NewBrowser(proxy string) (*Browser, error) {
 	customLauncher := launcher.
 		New().
 		Bin(chrome).
-		Headless(false)
+		Headless(headless)
 
 	if proxy != "" {
 		p, err := ParseProxy(proxy)
@@ -129,28 +129,26 @@ func ParseProxy(proxyStr string) (Proxy, error) {
 	}, nil
 }
 
-func (b *Browser) Work(ctx context.Context, taskChan <-chan func(browser *Browser) error) error {
+func (b *Browser) Work(ctx context.Context, taskChan <-chan func()) {
 	for {
 		select {
 		case task, ok := <-taskChan:
 			if !ok {
-				return nil // Channel closed, exit gracefully
+				return // Channel closed, exit gracefully
 			}
 
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						logger.Log.Sugar().Infof("Recovered from panic: %v", r)
+						logger.Log.Sugar().Errorf("Panic recovered in browser task: %v", r)
 					}
 				}()
 
-				if err := task(b); err != nil {
-					logger.Log.Sugar().Infof("Error executing task: %v", err)
-				}
+				task()
 			}()
 
 		case <-ctx.Done():
-			return ctx.Err()
+			return
 		}
 	}
 }

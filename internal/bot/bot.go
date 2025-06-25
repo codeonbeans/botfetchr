@@ -3,17 +3,20 @@ package tgbot
 import (
 	"botvideosaver/config"
 	"botvideosaver/internal/client/browserpool"
-	"botvideosaver/internal/client/instagram"
-	"botvideosaver/internal/client/vk"
+	"botvideosaver/internal/client/videosaver/instagram"
+	"botvideosaver/internal/client/videosaver/vk"
 	"botvideosaver/internal/logger"
 	"botvideosaver/internal/storage"
 	"context"
+	"crypto/rand"
 	"fmt"
+	"math/big"
 	"net"
 	"net/http"
 	"runtime/debug"
 	"time"
 
+	"github.com/corpix/uarand"
 	"github.com/go-rod/rod"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -22,18 +25,27 @@ import (
 
 type VideoSaver interface {
 	IsValidURL(url string) bool
-	GetVideoURL(url string) (string, error)
+	GetVideoURL(ctx context.Context, url string) (string, error)
 	GetVideoID(url string) (string, error)
+
+	SetUserAgent(ua string)
+	SetQuality(quality string)
+	SetRetryCount(count int)
+	SetTimeout(timeout time.Duration)
 }
 
-type VideoSaverFactory func(ua string, browser *rod.Browser) (VideoSaver, error)
+type VideoSaverFactory func(browser *rod.Browser) (VideoSaver, error)
 
 var videoSaverFactory = map[SaverType]VideoSaverFactory{
-	SaverTypeInstagram: func(ua string, browser *rod.Browser) (VideoSaver, error) {
-		return instagram.NewClient(ua, browser)
+	SaverTypeInstagram: func(browser *rod.Browser) (VideoSaver, error) {
+		client := instagram.NewClient(browser)
+		configVideoSaver(client)
+		return client, nil
 	},
-	SaverTypeVK: func(ua string, browser *rod.Browser) (VideoSaver, error) {
-		return vk.NewClient(ua, browser)
+	SaverTypeVK: func(browser *rod.Browser) (VideoSaver, error) {
+		client := vk.NewClient(browser)
+		configVideoSaver(client)
+		return client, nil
 	},
 }
 
@@ -113,6 +125,7 @@ func New(store *storage.Storage) (*DefaultBot, error) {
 
 	// Assign browser pool
 	defaultBot.browserPool, err = browserpool.NewClient(browserpool.Config{
+		Headless:      config.GetConfig().BrowserPool.Headless,
 		Proxies:       config.GetConfig().BrowserPool.Proxies,
 		PoolSize:      config.GetConfig().BrowserPool.PoolSize,
 		TaskQueueSize: config.GetConfig().BrowserPool.TaskQueueSize,
@@ -124,9 +137,9 @@ func New(store *storage.Storage) (*DefaultBot, error) {
 	return defaultBot, nil
 }
 
-func (b *DefaultBot) GetVideoSaver(url string, ua string, browser *rod.Browser) (VideoSaver, error) {
+func (b *DefaultBot) GetVideoSaver(url string, browser *rod.Browser) (VideoSaver, error) {
 	for saverType, factory := range videoSaverFactory {
-		client, err := factory(ua, browser)
+		client, err := factory(browser)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create client for type %s: %w", saverType, err)
 		}
@@ -142,4 +155,34 @@ func (b *DefaultBot) GetVideoSaver(url string, ua string, browser *rod.Browser) 
 func (b *DefaultBot) Start(ctx context.Context) {
 	logger.Log.Sugar().Info("Starting Telegram bot...")
 	b.bot.Start(ctx)
+}
+
+func getUA() string {
+	if config.GetConfig().VideoSaver.UseRandomUA {
+		return uarand.GetRandom()
+	}
+
+	uas := config.GetConfig().VideoSaver.UserAgents
+	if len(uas) == 0 {
+		return uarand.GetRandom()
+	}
+
+	// Return a random user agent from the list
+	randomIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(uas))))
+	if err != nil {
+		return uas[0]
+	}
+
+	return uas[randomIndex.Int64()]
+}
+
+func configVideoSaver(videoSaver VideoSaver) {
+	if videoSaver == nil {
+		return
+	}
+
+	videoSaver.SetUserAgent(getUA())
+	videoSaver.SetQuality(config.GetConfig().VideoSaver.Quality)
+	videoSaver.SetRetryCount(config.GetConfig().VideoSaver.RetryCount)
+	videoSaver.SetTimeout(time.Duration(config.GetConfig().VideoSaver.Timeout) * time.Second)
 }

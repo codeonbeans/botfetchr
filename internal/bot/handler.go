@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -197,26 +196,4 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 	}
 
 	return nil
-}
-
-func getFileSizeMB(url string) (float64, error) {
-	resp, err := http.Head(url)
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-
-	contentLength := resp.Header.Get("Content-Length")
-	if contentLength == "" {
-		return 0, fmt.Errorf("Content-Length header not found")
-	}
-
-	bytes, err := strconv.ParseInt(contentLength, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	// Convert bytes to MB
-	mb := float64(bytes) / (1024 * 1024)
-	return mb, nil
 }

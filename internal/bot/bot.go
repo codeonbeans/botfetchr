@@ -3,8 +3,8 @@ package tgbot
 import (
 	"botvideosaver/config"
 	"botvideosaver/internal/client/browserpool"
-	"botvideosaver/internal/client/videosaver/instagram"
-	"botvideosaver/internal/client/videosaver/vk"
+	"botvideosaver/internal/client/mediasaver/instagram"
+	"botvideosaver/internal/client/mediasaver/vk"
 	"botvideosaver/internal/logger"
 	"botvideosaver/internal/storage"
 	"context"
@@ -23,27 +23,28 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-type VideoSaver interface {
-	IsValidURL(url string) bool
-	GetVideoURLs(ctx context.Context, url string) ([]string, error)
+type MediaSaver interface {
 	GetUA() string
+	GetFilename(ogUrl, directUrl string) string
+	GetVideoURLs(ctx context.Context, browser *rod.Browser, url string) ([]string, error)
+	IsValidURL(url string) bool
 
 	SetUserAgent(ua string)
 	SetQuality(quality string)
 	SetTimeout(timeout time.Duration)
 }
 
-type VideoSaverFactory func(browser *rod.Browser) (VideoSaver, error)
+type MediaSaverFactory func() (MediaSaver, error)
 
-var videoSaverFactory = map[SaverType]VideoSaverFactory{
-	SaverTypeInstagram: func(browser *rod.Browser) (VideoSaver, error) {
-		client := instagram.NewClient(browser)
-		configVideoSaver(client)
+var mediaSaverFactory = map[SaverType]MediaSaverFactory{
+	SaverTypeInstagram: func() (MediaSaver, error) {
+		client := instagram.NewClient()
+		configMediaSaver(client)
 		return client, nil
 	},
-	SaverTypeVK: func(browser *rod.Browser) (VideoSaver, error) {
-		client := vk.NewClient(browser)
-		configVideoSaver(client)
+	SaverTypeVK: func() (MediaSaver, error) {
+		client := vk.NewClient()
+		configMediaSaver(client)
 		return client, nil
 	},
 }
@@ -136,9 +137,9 @@ func New(store *storage.Storage) (*DefaultBot, error) {
 	return defaultBot, nil
 }
 
-func (b *DefaultBot) GetVideoSaver(url string, browser *rod.Browser) (VideoSaver, error) {
-	for saverType, factory := range videoSaverFactory {
-		client, err := factory(browser)
+func (b *DefaultBot) GetVideoSaver(url string) (MediaSaver, error) {
+	for saverType, factory := range mediaSaverFactory {
+		client, err := factory()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create client for type %s: %w", saverType, err)
 		}
@@ -175,7 +176,7 @@ func getUA() string {
 	return uas[randomIndex.Int64()]
 }
 
-func configVideoSaver(videoSaver VideoSaver) {
+func configMediaSaver(videoSaver MediaSaver) {
 	if videoSaver == nil {
 		return
 	}

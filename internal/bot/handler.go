@@ -67,7 +67,6 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) {
 						var mediaGroup []models.InputMedia
 
 						for _, media := range result.Medias {
-							mediaType := DetectFileType(media.Filename)
 							mediaType := download.DetectFileType(media.Filename)
 							switch mediaType {
 							case "video":

@@ -1,21 +1,18 @@
-package tgbot
+package download
 
 import (
 	"fmt"
-	"io"
-	"math"
 	"mime"
 	"net/http"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 )
 
-// getFileName retrieves the filename from HTTP response headers
-func getFileName(url string) string {
+// GetFileName retrieves the filename from HTTP response headers
+func GetFileName(url string) string {
 	// Try to get filename from headers first
-	if filename := getFileNameFromHeaders(url); filename != "" {
+	if filename := GetFileNameFromHeaders(url); filename != "" {
 		return filename
 	}
 
@@ -34,8 +31,8 @@ func getFileName(url string) string {
 	return "downloaded_file"
 }
 
-// getFileNameFromHeaders makes a HEAD request to get filename from response headers
-func getFileNameFromHeaders(url string) string {
+// GetFileNameFromHeaders makes a HEAD request to get filename from response headers
+func GetFileNameFromHeaders(url string) string {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -65,12 +62,12 @@ func getFileNameFromHeaders(url string) string {
 	defer resp.Body.Close()
 
 	// Check Content-Disposition header first (most reliable)
-	if filename := extractFilenameFromContentDisposition(resp.Header.Get("Content-Disposition")); filename != "" {
+	if filename := ExtractFilenameFromContentDisposition(resp.Header.Get("Content-Disposition")); filename != "" {
 		return filename
 	}
 
 	// Check Content-Type header for file extension
-	if filename := extractFilenameFromContentType(resp.Header.Get("Content-Type")); filename != "" {
+	if filename := ExtractFilenameFromContentType(resp.Header.Get("Content-Type")); filename != "" {
 		return filename
 	}
 
@@ -93,20 +90,20 @@ func getFileNameFromHeaders(url string) string {
 	defer resp.Body.Close()
 
 	// Check Content-Disposition header from GET response
-	if filename := extractFilenameFromContentDisposition(resp.Header.Get("Content-Disposition")); filename != "" {
+	if filename := ExtractFilenameFromContentDisposition(resp.Header.Get("Content-Disposition")); filename != "" {
 		return filename
 	}
 
 	// Check Content-Type header from GET response
-	if filename := extractFilenameFromContentType(resp.Header.Get("Content-Type")); filename != "" {
+	if filename := ExtractFilenameFromContentType(resp.Header.Get("Content-Type")); filename != "" {
 		return filename
 	}
 
 	return ""
 }
 
-// extractFilenameFromContentDisposition extracts filename from Content-Disposition header
-func extractFilenameFromContentDisposition(contentDisposition string) string {
+// ExtractFilenameFromContentDisposition extracts filename from Content-Disposition header
+func ExtractFilenameFromContentDisposition(contentDisposition string) string {
 	if contentDisposition == "" {
 		return ""
 	}
@@ -140,8 +137,8 @@ func extractFilenameFromContentDisposition(contentDisposition string) string {
 	return ""
 }
 
-// extractFilenameFromContentType extracts a default filename based on Content-Type
-func extractFilenameFromContentType(contentType string) string {
+// ExtractFilenameFromContentType extracts a default filename based on Content-Type
+func ExtractFilenameFromContentType(contentType string) string {
 	if contentType == "" {
 		return ""
 	}
@@ -186,6 +183,9 @@ func extractFilenameFromContentType(contentType string) string {
 	return ""
 }
 
+// DetectFileType determines if a file is a photo or video based on its extension
+//
+// Returns "photo", "video", or "unknown"
 func DetectFileType(filename string) string {
 	// Get file extension and convert to lowercase
 	ext := strings.ToLower(filepath.Ext(filename))
@@ -220,141 +220,4 @@ func DetectFileType(filename string) string {
 		return "video"
 	}
 	return "unknown"
-}
-
-// getFileSize retrieves the file size in bytes from a given URL.
-func getFileSize(url string) (int64, error) {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 10 {
-				return fmt.Errorf("too many redirects")
-			}
-			return nil
-		},
-	}
-
-	// Standard approach for other URLs
-	size1, _ := getStandardFileSize(client, url)
-	// Special handling for OK CDN URLs
-	size2, _ := getOKCDNFileSize(client, url)
-
-	size := int64(math.Max(float64(size1), float64(size2)))
-
-	return size, nil
-}
-
-func getOKCDNFileSize(client *http.Client, url string) (int64, error) {
-	// Method 1: Try HEAD request with proper headers
-	req, err := http.NewRequest("HEAD", url, nil)
-	if err != nil {
-		return 0, fmt.Errorf("failed to create HEAD request: %w", err)
-	}
-
-	// Add headers that OK CDN expects
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "*/*")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9,ru;q=0.8")
-	req.Header.Set("Accept-Encoding", "identity")
-	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Pragma", "no-cache")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return 0, fmt.Errorf("HEAD request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 200 {
-		contentLength := resp.Header.Get("Content-Length")
-		if contentLength != "" && contentLength != "0" {
-			bytes, err := strconv.ParseInt(contentLength, 10, 64)
-			if err == nil && bytes > 0 {
-				return bytes, nil
-			}
-		}
-	}
-
-	// Method 2: Try GET request (some CDNs only provide Content-Length on GET)
-	req, err = http.NewRequest("GET", url, nil)
-	if err != nil {
-		return 0, fmt.Errorf("failed to create GET request: %w", err)
-	}
-
-	// Same headers as HEAD request
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "*/*")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9,ru;q=0.8")
-	req.Header.Set("Accept-Encoding", "identity")
-	req.Header.Set("Referer", "https://ok.ru/")
-
-	resp, err = client.Do(req)
-	if err != nil {
-		return 0, fmt.Errorf("GET request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return 0, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
-	}
-
-	// Check Content-Length from GET response
-	contentLength := resp.Header.Get("Content-Length")
-	if contentLength != "" && contentLength != "0" {
-		bytes, err := strconv.ParseInt(contentLength, 10, 64)
-		if err == nil && bytes > 0 {
-			return bytes, nil
-		}
-	}
-
-	// Method 3: Read the actual content to determine size
-	return readContentSize(resp.Body)
-}
-
-func getStandardFileSize(client *http.Client, url string) (int64, error) {
-	// Standard HEAD request
-	resp, err := client.Head(url)
-	if err != nil {
-		return 0, fmt.Errorf("HEAD request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	contentLength := resp.Header.Get("Content-Length")
-	if contentLength == "" {
-		return 0, fmt.Errorf("Content-Length header not found")
-	}
-
-	bytes, err := strconv.ParseInt(contentLength, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("invalid Content-Length: %w", err)
-	}
-
-	return bytes, nil
-}
-
-func readContentSize(body io.ReadCloser) (int64, error) {
-	const maxSize = 500 * 1024 * 1024 // 500MB limit
-	bytesRead, err := io.Copy(io.Discard, io.LimitReader(body, maxSize))
-	if err != nil {
-		return 0, fmt.Errorf("failed to read content: %w", err)
-	}
-
-	if bytesRead == maxSize {
-		return bytesRead, fmt.Errorf("file size exceeds 500MB limit (downloaded: %s)", ByteCountBinary(bytesRead))
-	}
-
-	return bytesRead, nil
-}
-
-func ByteCountBinary(b int64) string {
-	const unit = 1024
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
-	}
-	div, exp := int64(unit), 0
-	for n := b / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }

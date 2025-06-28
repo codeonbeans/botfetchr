@@ -10,17 +10,23 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"github.com/google/uuid"
 )
 
 type VideoResult struct {
-	ID    string
-	State string
-	Media io.ReadCloser
+	State  string
+	Medias []MediaData
+}
+
+type MediaData struct {
+	Filename string
+	Media    io.ReadCloser
 }
 
 func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) {
@@ -52,16 +58,36 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) {
 			go func() {
 				for result := range updateMessageChan {
 					// Complete the status message
-					if result.Media != nil {
-						inputVideo := &models.InputMediaVideo{
-							Media:           fmt.Sprintf("attach://%s.mp4", result.ID),
-							MediaAttachment: result.Media,
-							Caption:         fmt.Sprintf("%d. %s\nState: %s", i+1, url, result.State),
+					if len(result.Medias) > 0 {
+						// Create media group for multiple videos
+						var mediaGroup []models.InputMedia
+
+						for _, media := range result.Medias {
+							mediaType := DetectFileType(media.Filename)
+							switch mediaType {
+							case "video":
+								inputVideo := &models.InputMediaVideo{
+									Media:           fmt.Sprintf("attach://%s", media.Filename),
+									MediaAttachment: media.Media,
+									Caption:         fmt.Sprintf("%d. %s\nState: %s", i+1, url, result.State),
+								}
+								mediaGroup = append(mediaGroup, inputVideo)
+							case "photo":
+								inputPhoto := &models.InputMediaPhoto{
+									Media:           fmt.Sprintf("attach://%s", media.Filename),
+									MediaAttachment: media.Media,
+									Caption:         fmt.Sprintf("%d. %s\nState: %s", i+1, url, result.State),
+								}
+								mediaGroup = append(mediaGroup, inputPhoto)
+							default:
+								logger.Log.Sugar().Errorf("Unsupported media type for file %s", media.Filename)
+								continue
+							}
 						}
 
 						_, err := b.bot.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
 							ChatID: update.Message.Chat.ID,
-							Media:  []models.InputMedia{inputVideo},
+							Media:  mediaGroup,
 							ReplyParameters: &models.ReplyParameters{
 								MessageID: update.Message.ID,
 							},
@@ -91,7 +117,10 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) {
 							}
 						}
 
-						result.Media.Close() // Close the media stream (request body)
+						// Close all media streams
+						for _, media := range result.Medias {
+							media.Media.Close()
+						}
 					} else {
 						// Update status message with the current state
 						_, err := b.bot.EditMessageText(ctx, &bot.EditMessageTextParams{
@@ -126,8 +155,8 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 		Delay:    2 * time.Second,
 	}, func() error {
 		var (
-			directUrl string
-			videoID   string
+			directUrls []string
+			ua         string
 		)
 
 		if err := b.browserPool.UseBrowser(func(ctx context.Context, browser *browserpool.Browser) error {
@@ -141,53 +170,72 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 				return fmt.Errorf("failed to get video saver: %w", err)
 			}
 
-			videoID, err = saver.GetVideoID(url)
-			if err != nil {
-				return fmt.Errorf("failed to get video ID: %w", err)
-			}
-
-			directUrl, err = saver.GetVideoURL(ctx, url)
+			directUrls, err = saver.GetVideoURLs(ctx, url)
 			if err != nil {
 				return fmt.Errorf("failed to get direct video URL: %w", err)
 			}
+
+			// VK client used fixed user agent, so we need to get ua here
+			ua = saver.GetUA()
 
 			return nil
 		}); err != nil {
 			return err
 		}
 
-		sizeMB, err := getFileSizeMB(directUrl)
-		sizeMBStr := fmt.Sprintf("%.2f MB", sizeMB)
-		if err != nil {
-			sizeMBStr = "unknown size"
+		var totalSize int64
+		var medias []MediaData
+
+		for j, directUrl := range directUrls {
+			fileSize, _ := getFileSize(directUrl)
+			totalSize += fileSize
+			sizeStr := getSizeStr(fileSize)
+
+			// Update state to show which URL is being downloaded
+			updateMessageChan <- VideoResult{
+				State: fmt.Sprintf("⬇️ downloading media %d/%d...%s", j+1, len(directUrls), sizeStr),
+			}
+
+			req, err := http.NewRequest("GET", directUrl, nil)
+			if err != nil {
+				return fmt.Errorf("failed to create request for direct URL %s: %w", directUrl, err)
+			}
+
+			// Mimic a real browser
+			logger.Log.Sugar().Infof("downloading media from %s with user agent %s", directUrl, ua)
+			req.Header.Set("User-Agent", ua)
+			req.Header.Set("Accept", "*/*")
+			req.Header.Set("Accept-Language", "en-US,en;q=0.9,ru;q=0.8")
+			req.Header.Set("Accept-Encoding", "identity")
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return fmt.Errorf("failed to download video from %s: %w", directUrl, err)
+			}
+			if resp.StatusCode != http.StatusOK {
+				return fmt.Errorf("failed to download video from %s: HTTP %d %s", directUrl, resp.StatusCode, resp.Status)
+			}
+
+			filename := fmt.Sprintf("%s%s", uuid.NewString(), filepath.Ext(getFileName(directUrl)))
+			fmt.Println("Downloading media from:", filename)
+
+			medias = append(medias, MediaData{
+				Filename: filename,
+				Media:    resp.Body,
+			})
+		}
+
+		sizeStr := getSizeStr(totalSize)
+
+		// Show final success state with count of videos
+		successState := fmt.Sprintf("✅ get video successfully%s", sizeStr)
+		if len(medias) > 1 {
+			successState = fmt.Sprintf("✅ got %d videos successfully%s", len(medias), sizeStr)
 		}
 
 		updateMessageChan <- VideoResult{
-			// State: "⬇️ downloading video...",
-			State: fmt.Sprintf("⬇️ downloading video... (%s)\nOr you can download it manually: %s", sizeMBStr, directUrl),
-		}
-
-		req, err := http.NewRequest("GET", directUrl, nil)
-		if err != nil {
-			return fmt.Errorf("failed to create request: %w", err)
-		}
-
-		// Mimic a real browser
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return fmt.Errorf("failed to download video (%s): %w", sizeMBStr, err)
-		}
-
-		updateMessageChan <- VideoResult{
-			State: fmt.Sprintf("➤ video downloaded (%s), sending video...\nOr you can download it manually: %s", sizeMBStr, directUrl),
-		}
-
-		updateMessageChan <- VideoResult{
-			ID:    videoID,
-			Media: resp.Body,
-			State: fmt.Sprintf("✅ get video successfully (%s)", sizeMBStr),
+			Medias: medias,
+			State:  successState,
 		}
 
 		return nil
@@ -196,4 +244,11 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 	}
 
 	return nil
+}
+
+func getSizeStr(fileSize int64) string {
+	if fileSize == 0 {
+		return " (unknown size)"
+	}
+	return fmt.Sprintf(" (%s)", ByteCountBinary(fileSize))
 }

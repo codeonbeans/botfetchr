@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/devices"
 	"github.com/go-rod/rod/lib/proto"
 )
 
@@ -27,7 +26,7 @@ func NewClient(browser *rod.Browser) *clientImpl {
 	}
 }
 
-func (c *clientImpl) GetVideoURL(ctx context.Context, url string) (videoURL string, err error) {
+func (c *clientImpl) GetVideoURLs(ctx context.Context, url string) (videoURLs []string, err error) {
 	logger.Log.Sugar().Infof("Opening page %s with user agent %s", url, c.UA)
 
 	fmt.Println("Opening page with user agent:", c.UA, "and timeout:", c.Timeout)
@@ -47,28 +46,45 @@ func (c *clientImpl) GetVideoURL(ctx context.Context, url string) (videoURL stri
 	}()
 
 	logger.Log.Sugar().Infof("Setting viewport for page %s", url)
-	page.MustSetViewport(devices.Nexus5.Screen.Vertical.Width, devices.Nexus5.Screen.Vertical.Height, 1, true)
+	page.MustSetViewport(100, 100, 1, true)
 
 	page.MustReload()
 
 	for {
 		html := page.MustHTML()
 
-		urls := extractVideoURLs(html)
-		if len(urls) > 0 {
+		var urls []string
+
+		videoUrls := extractVideoURLs(html)
+		if len(videoUrls) > 0 {
 			var marshaledURL string
 			if c.Quality == "high" {
-				marshaledURL = urls[0] // First URL is the highest quality
+				marshaledURL = videoUrls[0] // First URL is the highest quality
 			} else {
-				marshaledURL = urls[len(urls)-1] // Last URL is the lowest quality
+				marshaledURL = videoUrls[len(videoUrls)-1] // Last URL is the lowest quality
 			}
 
 			url, err := common.UnmarshalURL(marshaledURL)
 			if err != nil {
-				return "", fmt.Errorf("failed to parse video URL: %w", err)
+				return nil, fmt.Errorf("failed to parse video URL: %w", err)
 			}
 
-			return url, nil
+			urls = append(urls, url)
+		}
+
+		imageUrls := extractImageURLs(html)
+		if len(imageUrls) > 0 {
+			for _, marshaledURL := range imageUrls {
+				url, err := common.UnmarshalURL(marshaledURL)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse image URL: %w", err)
+				}
+				urls = append(urls, url)
+			}
+		}
+
+		if len(urls) > 0 {
+			return urls, nil
 		}
 
 		time.Sleep(1 * time.Second)
@@ -108,6 +124,23 @@ func extractVideoURLs(text string) []string {
 	urlRegex := regexp.MustCompile(urlPattern)
 
 	matches := urlRegex.FindAllStringSubmatch(videoVersionsMatch[1], -1)
+
+	var urls []string
+	for _, match := range matches {
+		if len(match) > 1 {
+			urls = append(urls, match[1])
+		}
+	}
+
+	return urls
+}
+
+func extractImageURLs(text string) []string {
+	// Regex pattern to match image_versions2 section that comes after original_width
+	pattern := `(?s)"original_width":[^,}]*,.*?"image_versions2":\{"candidates":\[\{[^}]*"url":"([^"]+)"`
+	urlRegex := regexp.MustCompile(pattern)
+
+	matches := urlRegex.FindAllStringSubmatch(text, -1)
 
 	var urls []string
 	for _, match := range matches {

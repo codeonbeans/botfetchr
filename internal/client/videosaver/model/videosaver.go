@@ -62,3 +62,8 @@ func (c *BaseClientImpl) IsValidURL(url string) bool {
 	// to validate the URL format for the respective service
 	return false
 }
+
+func (c *BaseClientImpl) GetUA() string {
+	// Return the user agent
+	return c.UA
+}

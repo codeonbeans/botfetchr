@@ -25,8 +25,8 @@ import (
 
 type VideoSaver interface {
 	IsValidURL(url string) bool
-	GetVideoURL(ctx context.Context, url string) (string, error)
-	GetVideoID(url string) (string, error)
+	GetVideoURLs(ctx context.Context, url string) ([]string, error)
+	GetUA() string
 
 	SetUserAgent(ua string)
 	SetQuality(quality string)

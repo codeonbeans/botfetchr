@@ -23,21 +23,22 @@ func NewClient(browser *rod.Browser) *clientImpl {
 	}
 }
 
-func (c *clientImpl) GetVideoURL(ctx context.Context, urlText string) (videoURL string, err error) {
+func (c *clientImpl) GetVideoURLs(ctx context.Context, urlText string) (videoURLs []string, err error) {
 	ownerID, videoID, err := getOidAndId(urlText)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse VK video URL: %w", err)
+		return nil, fmt.Errorf("failed to parse VK video URL: %w", err)
 	}
 
 	embedUrl := fmt.Sprintf("https://vkvideo.ru/video_ext.php?oid=-%s&id=%s", ownerID, videoID)
 
 	logger.Log.Sugar().Infof("Opening page %s with user agent %s", embedUrl, c.UA)
 
+	c.SetUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
 	page, cancel := c.Browser.
 		Context(ctx).
 		MustPage(embedUrl).
 		MustSetUserAgent(&proto.NetworkSetUserAgentOverride{
-			UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+			UserAgent: c.UA,
 		}).
 		WithCancel()
 	defer page.Close()
@@ -62,34 +63,25 @@ func (c *clientImpl) GetVideoURL(ctx context.Context, urlText string) (videoURL 
 
 			url, err := common.UnmarshalURL(marshaledURL)
 			if err != nil {
-				return "", fmt.Errorf("failed to parse video URL: %w", err)
+				return nil, fmt.Errorf("failed to parse video URL: %w", err)
 			}
 
-			return url, nil
+			return []string{url}, nil
 		}
 
 		time.Sleep(1 * time.Second)
 	}
 }
 
-func (c *clientImpl) GetVideoID(url string) (videoID string, err error) {
-	ownerID, videoID, err := getOidAndId(url)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse VK video URL: %w", err)
-	}
-
-	return fmt.Sprintf("%s_%s", ownerID, videoID), nil
-}
-
 func (c *clientImpl) IsValidURL(url string) bool {
-	// Check if the URL matches the VK video format
-	re := regexp.MustCompile(`https:\/\/vkvideo\.ru\/video-(\d+)_(\d+)`)
+	// Check if the URL matches the VK video format (both desktop and mobile)
+	re := regexp.MustCompile(`https:\/\/(m\.)?vkvideo\.ru\/video-(\d+)_(\d+)`)
 	return re.MatchString(url)
 }
 
 func getOidAndId(url string) (ownerID, videoID string, err error) {
 	// Get owner ID and video ID from the URL
-	// Pattern: https://vk.com/video-123456_7890123
+	// Pattern: https://vk.com/video-123456_7890123 or https://m.vkvideo.ru/video-123456_7890123
 	re := regexp.MustCompile(`video-(\d+)_(\d+)`)
 	matches := re.FindStringSubmatch(url)
 

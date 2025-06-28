@@ -1,17 +1,20 @@
 package instagram
 
 import (
-	videosavermdl "botvideosaver/internal/client/videosaver/model"
+	videosavermdl "botvideosaver/internal/client/mediasaver/base"
 	"botvideosaver/internal/logger"
 	"botvideosaver/internal/utils/common"
+	"botvideosaver/internal/utils/download"
 	"context"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
+	"github.com/google/uuid"
 )
 
 var shortCodeRegex = regexp.MustCompile(`/(p|tv|reel|reels(?:/videos)?)/([A-Za-z0-9-_]+)`)
@@ -20,15 +23,15 @@ type clientImpl struct {
 	*videosavermdl.BaseClientImpl
 }
 
-func NewClient(browser *rod.Browser) *clientImpl {
+func NewClient() *clientImpl {
 	return &clientImpl{
-		BaseClientImpl: videosavermdl.NewBaseClient(browser),
+		BaseClientImpl: videosavermdl.NewBaseClient(),
 	}
 }
 
-func (c *clientImpl) GetVideoURLs(ctx context.Context, url string) (videoURLs []string, err error) {
+func (c *clientImpl) GetVideoURLs(ctx context.Context, browser *rod.Browser, url string) (videoURLs []string, err error) {
 	logger.Log.Sugar().Infof("Opening page %s with user agent %s", url, c.UA)
-	page, cancel := c.Browser.
+	page, cancel := browser.
 		Context(ctx).
 		MustPage(url).
 		MustSetUserAgent(&proto.NetworkSetUserAgentOverride{
@@ -43,7 +46,7 @@ func (c *clientImpl) GetVideoURLs(ctx context.Context, url string) (videoURLs []
 	}()
 
 	logger.Log.Sugar().Infof("Setting viewport for page %s", url)
-	page.MustSetViewport(100, 100, 1, true)
+	page.MustSetViewport(1000, 1000, 1, true)
 
 	page.MustReload()
 
@@ -69,14 +72,16 @@ func (c *clientImpl) GetVideoURLs(ctx context.Context, url string) (videoURLs []
 			urls = append(urls, url)
 		}
 
-		imageUrls := extractImageURLs(html)
-		if len(imageUrls) > 0 {
-			for _, marshaledURL := range imageUrls {
-				url, err := common.UnmarshalURL(marshaledURL)
-				if err != nil {
-					return nil, fmt.Errorf("failed to parse image URL: %w", err)
+		if isPost(url) {
+			imageUrls := extractImageURLs(html)
+			if len(imageUrls) > 0 {
+				for _, marshaledURL := range imageUrls {
+					url, err := common.UnmarshalURL(marshaledURL)
+					if err != nil {
+						return nil, fmt.Errorf("failed to parse image URL: %w", err)
+					}
+					urls = append(urls, url)
 				}
-				urls = append(urls, url)
 			}
 		}
 
@@ -88,16 +93,17 @@ func (c *clientImpl) GetVideoURLs(ctx context.Context, url string) (videoURLs []
 	}
 }
 
-func (c *clientImpl) GetVideoID(url string) (string, error) {
-	// Extract the video ID from the URL
-	// This is a placeholder implementation; you may need to adjust it based on your URL structure
-	parts := strings.Split(url, "/")
-	if len(parts) < 2 {
-		return "", fmt.Errorf("invalid Instagram URL: %s", url)
+func (c *clientImpl) GetFilename(ogUrl, directUrl string) string {
+	var fileID string
+	matches := shortCodeRegex.FindStringSubmatch(ogUrl)
+	if len(matches) < 3 || isPost(ogUrl) {
+		fileID = uuid.NewString()
+	} else {
+		fileID = matches[2]
 	}
-	videoID := parts[len(parts)-1]
 
-	return videoID, nil
+	filename := fmt.Sprintf("instagram_%s_%s%s", c.Quality, fileID, filepath.Ext(download.GetFileName(directUrl)))
+	return filename
 }
 
 func (c *clientImpl) IsValidURL(url string) bool {
@@ -147,4 +153,12 @@ func extractImageURLs(text string) []string {
 	}
 
 	return urls
+}
+
+func isPost(url string) bool {
+	return strings.Contains(url, "/p/") || strings.Contains(url, "/tv/")
+}
+
+func isReel(url string) bool {
+	return strings.Contains(url, "/reel/") || strings.Contains(url, "/reels/videos/")
 }

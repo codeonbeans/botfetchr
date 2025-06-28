@@ -1,29 +1,34 @@
 package vk
 
 import (
-	videosavermdl "botvideosaver/internal/client/videosaver/model"
+	videosavermdl "botvideosaver/internal/client/mediasaver/base"
 	"botvideosaver/internal/logger"
 	"botvideosaver/internal/utils/common"
+	"botvideosaver/internal/utils/download"
 	"context"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"time"
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/proto"
+	"github.com/google/uuid"
 )
+
+var shortCodeRegex = regexp.MustCompile(`https:\/\/(m\.)?vkvideo\.ru\/video-(\d+)_(\d+)`)
 
 type clientImpl struct {
 	*videosavermdl.BaseClientImpl
 }
 
-func NewClient(browser *rod.Browser) *clientImpl {
+func NewClient() *clientImpl {
 	return &clientImpl{
-		BaseClientImpl: videosavermdl.NewBaseClient(browser),
+		BaseClientImpl: videosavermdl.NewBaseClient(),
 	}
 }
 
-func (c *clientImpl) GetVideoURLs(ctx context.Context, urlText string) (videoURLs []string, err error) {
+func (c *clientImpl) GetVideoURLs(ctx context.Context, browser *rod.Browser, urlText string) (videoURLs []string, err error) {
 	ownerID, videoID, err := getOidAndId(urlText)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse VK video URL: %w", err)
@@ -34,7 +39,7 @@ func (c *clientImpl) GetVideoURLs(ctx context.Context, urlText string) (videoURL
 	logger.Log.Sugar().Infof("Opening page %s with user agent %s", embedUrl, c.UA)
 
 	c.SetUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
-	page, cancel := c.Browser.
+	page, cancel := browser.
 		Context(ctx).
 		MustPage(embedUrl).
 		MustSetUserAgent(&proto.NetworkSetUserAgentOverride{
@@ -73,10 +78,22 @@ func (c *clientImpl) GetVideoURLs(ctx context.Context, urlText string) (videoURL
 	}
 }
 
+func (c *clientImpl) GetFilename(ogUrl, directUrl string) string {
+	var fileID string
+	oid, id, err := getOidAndId(ogUrl)
+	if err != nil {
+		fileID = uuid.NewString()
+	} else {
+		fileID = fmt.Sprintf("%s_%s", oid, id) // Use owner ID
+	}
+
+	filename := fmt.Sprintf("vk_%s_%s%s", c.Quality, fileID, filepath.Ext(download.GetFileName(directUrl)))
+	return filename
+}
+
 func (c *clientImpl) IsValidURL(url string) bool {
 	// Check if the URL matches the VK video format (both desktop and mobile)
-	re := regexp.MustCompile(`https:\/\/(m\.)?vkvideo\.ru\/video-(\d+)_(\d+)`)
-	return re.MatchString(url)
+	return shortCodeRegex.MatchString(url)
 }
 
 func getOidAndId(url string) (ownerID, videoID string, err error) {

@@ -3,8 +3,6 @@ package videosavermdl
 import (
 	"botvideosaver/internal/logger"
 	"time"
-
-	"github.com/go-rod/rod"
 )
 
 const DEFAULT_TIMEOUT = 30 * time.Second
@@ -14,16 +12,13 @@ type BaseClientImpl struct {
 	UA      string
 	Quality string        // Quality can be "low" or "high"
 	Timeout time.Duration // Timeout for each task
-
-	Browser *rod.Browser
 }
 
-func NewBaseClient(browser *rod.Browser) *BaseClientImpl {
+func NewBaseClient() *BaseClientImpl {
 	return &BaseClientImpl{
 		UA:      DEFAULT_USER_AGENT,
 		Quality: "high",          // Default quality
 		Timeout: DEFAULT_TIMEOUT, // Default timeout
-		Browser: browser,
 	}
 }
 

@@ -28,9 +28,6 @@ func NewClient(browser *rod.Browser) *clientImpl {
 
 func (c *clientImpl) GetVideoURLs(ctx context.Context, url string) (videoURLs []string, err error) {
 	logger.Log.Sugar().Infof("Opening page %s with user agent %s", url, c.UA)
-
-	fmt.Println("Opening page with user agent:", c.UA, "and timeout:", c.Timeout)
-
 	page, cancel := c.Browser.
 		Context(ctx).
 		MustPage(url).

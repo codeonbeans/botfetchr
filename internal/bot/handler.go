@@ -217,7 +217,6 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan VideoResult) e
 			}
 
 			filename := fmt.Sprintf("%s%s", uuid.NewString(), filepath.Ext(getFileName(directUrl)))
-			fmt.Println("Downloading media from:", filename)
 
 			medias = append(medias, MediaData{
 				Filename: filename,

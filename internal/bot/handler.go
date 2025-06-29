@@ -25,6 +25,7 @@ type MediaResult struct {
 
 type MediaData struct {
 	Filename string
+	Size     int64
 	Media    io.ReadCloser
 }
 
@@ -89,17 +90,41 @@ func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) {
 							}
 						}
 
+						// split 3
+						mediaGroup2 := mediaGroup[:len(mediaGroup)/3]
+						mediaGroup3 := mediaGroup[len(mediaGroup)/3 : len(mediaGroup)*2/3]
+						mediaGroup4 := mediaGroup[len(mediaGroup)*2/3:]
+						b.bot.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
+							ChatID: update.Message.Chat.ID,
+							Media:  mediaGroup3,
+							ReplyParameters: &models.ReplyParameters{
+								MessageID: update.Message.ID,
+							},
+						})
+
+						b.bot.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
+							ChatID: update.Message.Chat.ID,
+							Media:  mediaGroup4,
+							ReplyParameters: &models.ReplyParameters{
+								MessageID: update.Message.ID,
+							},
+						})
+
 						_, err := b.bot.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
 							ChatID: update.Message.Chat.ID,
-							Media:  mediaGroup,
+							Media:  mediaGroup2,
 							ReplyParameters: &models.ReplyParameters{
 								MessageID: update.Message.ID,
 							},
 						})
 						if err != nil {
 							logger.Log.Sugar().Errorf("Failed to send media group: %v", err)
+							totalSize := int64(0)
+							for _, media := range result.Medias {
+								totalSize += media.Size
+							}
 
-							state := fmt.Sprintf("❌ failed to send media: %v", err)
+							state := fmt.Sprintf("❌ failed to send media%s: %v", getSizeStr(totalSize), err)
 							if _, err = b.bot.EditMessageText(ctx, &bot.EditMessageTextParams{
 								ChatID:    update.Message.Chat.ID,
 								MessageID: statusMsg.ID,
@@ -218,6 +243,7 @@ func (b *DefaultBot) handleURL(url string, updateMessageChan chan MediaResult) e
 
 			medias = append(medias, MediaData{
 				Filename: saver.GetFilename(url, directUrl),
+				Size:     fileSize,
 				Media:    resp.Body,
 			})
 		}

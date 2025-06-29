@@ -55,20 +55,12 @@ func (c *clientImpl) GetVideoURLs(ctx context.Context, browser *rod.Browser, url
 
 		var urls []string
 
-		videoUrls := extractVideoURLs(html)
-		if len(videoUrls) > 0 {
-			var marshaledURL string
-			if c.Quality == "high" {
-				marshaledURL = videoUrls[0] // First URL is the highest quality
-			} else {
-				marshaledURL = videoUrls[len(videoUrls)-1] // Last URL is the lowest quality
-			}
-
-			url, err := common.UnmarshalURL(marshaledURL)
+		videoUrls := c.extractVideoURLs(html)
+		for _, videoUrl := range videoUrls {
+			url, err := common.UnmarshalURL(videoUrl)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse video URL: %w", err)
+				continue
 			}
-
 			urls = append(urls, url)
 		}
 
@@ -111,27 +103,42 @@ func (c *clientImpl) IsValidURL(url string) bool {
 	return shortCodeRegex.Match([]byte(url))
 }
 
-func extractVideoURLs(text string) []string {
+func (c *clientImpl) extractVideoURLs(text string) []string {
 	// Regex pattern to match URLs within video_versions array
-	pattern := `(?s)"video_versions":\s*\[(.*?)\]`
+	pattern := `"video_versions"\s*:\s*\[(.*?)\]`
 	videoVersionsRegex := regexp.MustCompile(pattern)
 
-	// Find the video_versions section
-	videoVersionsMatch := videoVersionsRegex.FindStringSubmatch(text)
-	if len(videoVersionsMatch) < 2 {
+	// Find all video_versions sections
+	videoVersionsMatches := videoVersionsRegex.FindAllStringSubmatch(text, -1)
+	if len(videoVersionsMatches) == 0 {
 		return nil
 	}
 
-	// Extract URLs from the video_versions section
-	urlPattern := `"url":\s*"([^"]+)"`
+	var urls []string
+
+	// Extract URLs from each video_versions section
+	urlPattern := `"url"\s*:\s*"([^"]+)"`
 	urlRegex := regexp.MustCompile(urlPattern)
 
-	matches := urlRegex.FindAllStringSubmatch(videoVersionsMatch[1], -1)
+	for _, videoVersionsMatch := range videoVersionsMatches {
+		if len(videoVersionsMatch) < 2 {
+			continue
+		}
 
-	var urls []string
-	for _, match := range matches {
-		if len(match) > 1 {
-			urls = append(urls, match[1])
+		matches := urlRegex.FindAllStringSubmatch(videoVersionsMatch[1], -1)
+		// for _, match := range matches {
+		// 	if len(match) > 1 {
+		// 		urls = append(urls, UnmarshalURL(match[1]))
+		// 	}
+		// }
+		if len(matches) > 1 {
+			//First url is highest quality, last is lowest quality
+			// urls = append(urls, UnmarshalURL(matches[0][1]))
+			if c.Quality == "high" {
+				urls = append(urls, matches[0][1]) // First URL is the highest quality
+			} else {
+				urls = append(urls, matches[len(matches)-1][1]) // Last URL is the lowest quality
+			}
 		}
 	}
 

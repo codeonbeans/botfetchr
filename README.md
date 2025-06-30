@@ -1,3 +1,4 @@
+
 # botmediasaver
 
 A high-performance Go application that downloads videos from various social media platforms using a browser pool architecture for concurrent task processing. Built with Telegram bot integration for easy user interaction.
@@ -91,24 +92,15 @@ docker compose -f docker-compose.yml -p botmediasaver up -d
 For development or custom deployments:
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/yourusername/botmediasaver.git
-cd botmediasaver
 
-# 2. Install dependencies
+# 1. Install dependencies
 go mod download
 
-# 3. Install required tools
+# 2. Install required tools
 go install github.com/pressly/goose/v3/cmd/goose@latest
 go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
-# 4. Set up database
-cd migrations
-goose postgres "your-postgres-connection-string" up
-cd ..
-sqlc generate
-
-# 5. Build and run
+# 3. Build and run
 go build -o botmediasaver
 ./botmediasaver
 

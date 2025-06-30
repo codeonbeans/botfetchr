@@ -36,8 +36,8 @@ postgres:
 
 redis:
   clusters:
-    - host: "host.docker.internal" # use "host.docker.internal" if you run app inside docker container
-      port: "6379"
+  host: "host.docker.internal" # use "host.docker.internal" if you run app inside docker container
+  port: "6379"
   password: ""
   db: 0
 

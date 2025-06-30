@@ -20,10 +20,10 @@ import (
 func main() {
 	logger.InitLogger()
 
-	// // Migrate the database
-	// if err := storage.Migrate(); err != nil {
-	// 	logger.Log.Sugar().Fatalf("Failed to migrate database: %v", err)
-	// }
+	// Migrate the database
+	if err := storage.Migrate(); err != nil {
+		logger.Log.Sugar().Fatalf("Failed to migrate database: %v", err)
+	}
 
 	db, err := pgxpool.NewPgxpool(pgxpool.PgxpoolOptions{
 		Url:             config.GetConfig().Postgres.Url,

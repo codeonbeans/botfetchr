@@ -1,7 +1,10 @@
 -- name: GetAccountTelegram :one
 SELECT *
 FROM "account"."telegrams"
-WHERE id = $1;
+WHERE (
+  id = sqlc.narg('id') OR
+  telegram_id = sqlc.narg('telegram_id')
+);
 
 -- name: CountAccountTelegrams :one
 SELECT COUNT(id)

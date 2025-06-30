@@ -1,19 +1,21 @@
-
 # botmediasaver
 
-A high-performance Go application that downloads videos from various social media platforms using a browser pool architecture for concurrent task processing.
+A high-performance Go application that downloads videos from various social media platforms using a browser pool architecture for concurrent task processing. Built with Telegram bot integration for easy user interaction.
 
 ## 🚀 Features
 
 ### Main Features
 
--   **Video Download Bot**: Send a link and get the video downloaded and sent back
--   **Browser Pool**: Efficient concurrent task handling with multiple browser instances
--   **Proxy Support**: Built-in proxy configuration for each browser instance
+-   **Telegram Bot Integration**: Send a link to the bot and get the video downloaded and sent back
+-   **Browser Pool Architecture**: Efficient concurrent task handling with multiple browser instances
+-   **Multi-Platform Support**: Download videos from Instagram, VK, and more
+-   **Proxy Support**: Built-in proxy configuration for both Telegram API and browser instances
+-   **High Performance**: Redis-based task queuing and PostgreSQL for data persistence
+-   **Smart User Agent Rotation**: Randomized or custom user agents to avoid detection
 
 ### Supported Platforms
 
-Public contents only:
+Public content only:
 
 -   **Instagram**: Reels, Posts, ~~Stories~~
 -   **VK**: Videos
@@ -22,38 +24,130 @@ Public contents only:
 
 ### Core Components
 
+#### Telegram Bot
+
+-   Token-based authentication
+-   Optional proxy support for API requests
+-   Debug logging capabilities
+-   SOCKS5 and MTProxy support
+
 #### Browser Pool
 
 The main core of the application is a sophisticated browser pool system that manages multiple Chrome/Chromium instances to handle concurrent video download tasks efficiently.
 
 **Key Features:**
 
--   Round-robin browser selection for load balancing
+-   Configurable pool size for concurrent browser instances
 -   Task queuing system with configurable buffer sizes
+-   Headless or headed mode operation
+-   Per-instance proxy configuration
 -   Graceful shutdown handling with signal management
 
-#### Browser Management
+#### Media Saver Engine
 
-Each browser instance in the pool:
+-   Smart user agent rotation (random or predefined list)
+-   Quality selection (low/high)
+-   Configurable retry mechanism
+-   Timeout management for reliable downloads
 
--   Runs in headless or headed mode (configurable)
--   Supports proxy authentication
--   Handles certificate errors for MITM proxies
--   Manages individual task execution with context cancellation
+#### Data Layer
+
+-   **PostgreSQL**: Persistent data storage with connection pooling
+-   **Redis**: Task queuing and caching with cluster support
+-   **Migrations**: Versioned database schema management
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+Before running the application, you need to create a configuration file:
+
+1.  Copy the example configuration:
+
+    ```bash
+    cp config.example.yml config.dev.yml
+
+    ```
+
+2.  Edit `config.dev.yml` with your settings (see Configuration section below)
+
+### Option 1: Docker Compose (Recommended)
+
+The easiest way to run botmediasaver:
+
+```bash
+docker compose -f docker-compose.yml -p botmediasaver up -d
+
+```
+
+**Advantages:**
+
+-   No system dependencies required
+-   All tools pre-installed (Chrome, PostgreSQL, Redis)
+-   Easy to manage and scale
+
+### Option 2: Native Installation
+
+For development or custom deployments:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/yourusername/botmediasaver.git
+cd botmediasaver
+
+# 2. Install dependencies
+go mod download
+
+# 3. Install required tools
+go install github.com/pressly/goose/v3/cmd/goose@latest
+go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+# 4. Set up database
+cd migrations
+goose postgres "your-postgres-connection-string" up
+cd ..
+sqlc generate
+
+# 5. Build and run
+go build -o botmediasaver
+./botmediasaver
+
+```
 
 ## 📋 Requirements
 
+### Docker Requirements
+
+When using Docker Compose:
+
+-   Docker and Docker Compose installed
+-   Configuration file (`config.dev.yml`)
+-   Telegram Bot Token
+
+**That's it!** The container includes all necessary dependencies.
+
 ### Native Installation Requirements
 
-If you're running the application natively (without Docker), you'll need:
+When running natively, you need:
 
-#### System Requirements
+#### 1. External Services
 
-Chrome or Chromium browser must be installed and available in your system PATH.
+-   **PostgreSQL** database server
+-   **Redis** server (single instance)
+-   **Telegram Bot Token** (from @BotFather)
 
-##### Supported Chrome/Chromium Paths
+#### 2. Go Tools
 
-**macOS (Darwin):**
+-   **Goose** - Database migration tool
+-   **SQLC** - Generate type-safe Go code from SQL
+
+#### 3. Chrome/Chromium Browser
+
+Must be installed and available in your system PATH.
+
+<details> <summary>📁 Supported Browser Paths</summary>
+
+**macOS:**
 
 ```
 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
@@ -85,14 +179,6 @@ chromium-browser
 
 ```
 
-**OpenBSD:**
-
-```
-chrome
-chromium
-
-```
-
 **Windows:**
 
 ```
@@ -108,110 +194,157 @@ edge
 
 ```
 
-#### Development Tools
+**OpenBSD:**
 
-You'll also need to install these Go tools for database management:
-
-1.  **Goose** - Database migration tool
-
-    ```bash
-    go install github.com/pressly/goose/v3/cmd/goose@latest
-
-    ```
-
-2.  **SQLC** - Generate type-safe Go code from SQL
-
-    ```bash
-    go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-
-    ```
-
-
-### Docker Installation
-
-If you're using Docker, **none of the above requirements are needed**. The Docker container includes all necessary dependencies including Chrome/Chromium and the required Go tools.
-
-## 🚀 Usage
-
-There are two ways to run this bot but always to create the configuration first: Create a configuration file **config.dev.yml** base on config/config.example.yml
-
-
-### Using Docker Compose (Recommended)
-
-The easiest way to run botmediasaver is using Docker Compose:
-```bash
-# Run the docker compose
-docker compose -f docker-compose.yml -p botmediasaver up -d
 ```
-
-### Native Installation
-
-#### 1. Clone the Repository
-
-```bash
-git clone https://github.com/yourusername/botmediasaver.git
-cd botmediasaver
-```
-
-#### 2. Install Dependencies
-
-```bash
-# Install Go dependencies
-go mod download
-
-# Install required tools
-go install github.com/pressly/goose/v3/cmd/goose@latest
-go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+chrome
+chromium
 
 ```
 
-#### 3. Database Setup
+</details>
+
+## ⚙️ Configuration
+
+The application is configured via YAML files. Copy `config.example.yml` to your environment-specific config file and customize the following sections:
+
+### Environment Settings
+
+```yaml
+env: "dev" # Available options: dev, staging, production
+app:
+  name: "botmediasaver"
+
+```
+
+### Telegram Bot Configuration
+
+```yaml
+telegramBot:
+  token: "<your-telegram-bot-token>" # Get from @BotFather
+  logDebug: false
+  proxy: # Optional proxy settings
+    enabled: false
+    type: "socks5" # socks5 or mtproxy
+    address: ""
+    port: 1080
+    username: "" # For authenticated proxies
+    password: ""
+
+```
+
+### Media Saver Settings
+
+```yaml
+mediaSaver:
+  useRandomUA: true # Random user agent per request
+  userAgents: [] # Custom user agents (fallback to random if empty)
+  quality: "high" # low or high
+  retryCount: 3 # Failed task retries
+  timeout: 15 # Seconds
+
+```
+
+### Database Configuration
+
+```yaml
+postgres:
+  # Option 1: Connection URL
+  url: "postgresql://username:password@localhost:5432/dbname"
+
+  # Option 2: Individual parameters
+  host: "localhost" # Use "host.docker.internal" for Docker
+  port: "5432"
+  database: "botmediasaver"
+  username: "your_username"
+  password: "your_password"
+
+  # Connection pooling
+  maxConnections: 8
+  maxIdleConnections: 10
+  logQuery: false # Enable for debugging
+
+```
+
+### Redis Configuration
+
+```yaml
+redis:
+  clusters:
+    - host: "localhost" # Use "host.docker.internal" for Docker
+      port: "6379"
+  password: ""
+  db: 0
+
+```
+
+### Browser Pool Settings
+
+```yaml
+browserpool:
+  headless: true # Set false to see browser UI
+  poolSize: 10 # Concurrent browser instances
+  proxies: [] # List of proxy URLs (≤ poolSize)
+  taskQueueSize: 5 # Tasks per browser instance
+
+```
+
+### Logging Configuration
+
+```yaml
+log:
+  level: "debug" # debug, info, warn, error, dpanic, panic, fatal
+  stacktraceLevel: "error"
+  fileEnabled: true
+  fileSize: 10 # MB
+  filePath: "log/log.log"
+  fileCompress: false
+  maxAge: 1 # Days to keep log files
+  maxBackups: 10 # Number of log files
+
+```
+
+## 🔧 Development
+
+### Database Management
+
+#### Creating Migrations
 
 ```bash
-# Run database migrations
-goose up
+cd migrations
+goose create add_new_table sql
 
-# Generate database code (if you make changes to SQL files)
+```
+
+#### Applying Migrations
+
+```bash
+# From migrations directory
+goose postgres "your-connection-string" up
+
+# Rollback if needed
+goose postgres "your-connection-string" down
+
+```
+
+#### Generating Code
+
+After modifying SQL queries:
+
+```bash
 sqlc generate
 
 ```
 
-#### 4. Build and Run
+### Environment-Specific Configs
 
-```bash
-# Build the application
-go build -o botmediasaver
+Create different config files for different environments:
 
-# Run the application
-./botmediasaver
+-   `config.dev.yml` - Development
+-   `config.staging.yml` - Staging
+-   `config.prod.yml` - Production
 
-```
-
-### Development Workflow
-
-#### Making Database Changes
-
-1.  Create a new migration:
-
-    ```bash
-    cd migrations
-    goose create add_new_table sql
-    ```
-
-2.  Edit the generated migration file in `migrations/`
-
-3.  Apply migrations:
-
-    ```bash
-    goose up
-    ```
-
-4.  If you modify SQL queries, regenerate the Go code:
-
-    ```bash
-    sqlc generate
-    ```
-
+Set the environment via the `env` field in your config file.
 
 ## 🛡️ Error Handling
 
@@ -221,3 +354,23 @@ The application includes comprehensive error handling:
 -   **Context Cancellation**: Proper cleanup on shutdown signals
 -   **Browser Failure**: Individual browser failures don't affect the entire pool
 -   **Timeout Management**: Configurable timeouts for long-running tasks
+-   **Retry Logic**: Automatic retries for failed download attempts
+-   **Connection Pooling**: Database connection management with automatic recovery
+
+## 🚀 Scaling & Performance
+
+### Horizontal Scaling
+
+-   Increase `browserpool.poolSize` for more concurrent downloads
+-   Add more Redis cluster nodes for better task distribution
+-   Use database connection pooling for optimal resource usage
+
+### Performance Tuning
+
+-   Adjust `taskQueueSize` based on memory constraints
+-   Optimize `retryCount` and `timeout` values for your use case
+-   Use headless mode (`browserpool.headless: true`) for better performance
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](https://claude.ai/chat/LICENSE) file for details.

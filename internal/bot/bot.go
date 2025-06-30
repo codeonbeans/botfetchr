@@ -14,9 +14,11 @@ import (
 	"net"
 	"net/http"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/corpix/uarand"
+	"github.com/eko/gocache/lib/v4/marshaler"
 	"github.com/go-rod/rod"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -50,12 +52,15 @@ var mediaSaverFactory = map[SaverType]MediaSaverFactory{
 }
 
 type DefaultBot struct {
-	bot         *bot.Bot
-	storage     *storage.Storage
-	browserPool browserpool.Client
+	*bot.Bot
+	subscriptionMux sync.Mutex
+	storage         *storage.Storage
+	cacheManager    *marshaler.Marshaler
+	browserPool     browserpool.Client
 }
 
-func New(store *storage.Storage) (*DefaultBot, error) {
+func New(store *storage.Storage, cacheManager *marshaler.Marshaler) (*DefaultBot, error) {
+
 	logger.Log.Sugar().Info("Initializing bot...")
 
 	var httpClient *http.Client
@@ -96,6 +101,8 @@ func New(store *storage.Storage) (*DefaultBot, error) {
 
 	// Assign storage
 	defaultBot.storage = store
+	// Assign cache manager
+	defaultBot.cacheManager = cacheManager
 
 	opts := []bot.Option{
 		bot.WithDefaultHandler(func(ctx context.Context, bot *bot.Bot, update *models.Update) {
@@ -118,7 +125,7 @@ func New(store *storage.Storage) (*DefaultBot, error) {
 	}
 
 	// Assign bot client
-	defaultBot.bot, err = bot.New(config.GetConfig().TelegramBot.Token, opts...)
+	defaultBot.Bot, err = bot.New(config.GetConfig().TelegramBot.Token, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bot client: %w", err)
 	}
@@ -154,7 +161,7 @@ func (b *DefaultBot) GetVideoSaver(url string) (MediaSaver, error) {
 
 func (b *DefaultBot) Start(ctx context.Context) {
 	logger.Log.Sugar().Info("Starting Telegram bot...")
-	b.bot.Start(ctx)
+	b.Bot.Start(ctx)
 }
 
 func getUA() string {

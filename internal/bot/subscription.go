@@ -103,8 +103,6 @@ func (b *DefaultBot) IsAccountAllow(ctx context.Context, accountID int64, featur
 		}
 	}
 
-	fmt.Println("Current Usage:", usage.Usage, "Pending Usage:", pendingUsage, "Plan Feature Limit:", planFeature.Limit)
-
 	if usage.Usage+pendingUsage > planFeature.Limit && planFeature.Limit > 0 {
 		return ErrFeatureLimitExceeded
 	}

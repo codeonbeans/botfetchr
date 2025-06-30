@@ -10,6 +10,18 @@ volumes:
 
 
 services:
+  app:
+    container_name: botvideosaver
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+      - redis
+      # - nats
+    networks:
+      - network
+
   postgres:
     container_name: postgres
     image: postgres:17-alpine

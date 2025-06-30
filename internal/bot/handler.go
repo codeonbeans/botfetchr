@@ -1,21 +1,21 @@
 package tgbot
 
 import (
-	"botvideosaver/config"
-	"botvideosaver/internal/client/browserpool"
+	"botvideosaver/generated/sqlc"
 	"botvideosaver/internal/logger"
-	"botvideosaver/internal/utils/common"
-	"botvideosaver/internal/utils/download"
+	"botvideosaver/internal/model"
 	"botvideosaver/internal/utils/ptr"
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 	"time"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type MediaResult struct {
@@ -24,254 +24,129 @@ type MediaResult struct {
 }
 
 type MediaData struct {
-	Filename string
-	Size     int64
-	Media    io.ReadCloser
+	Filename  string
+	Size      int64
+	Media     io.ReadCloser
+	DirectURL string
+}
+
+// ProcessingContext encapsulates all the context needed for processing a URL
+type ProcessingContext struct {
+	ctx           context.Context
+	chatID        int64
+	originalMsgID int
+	urlIndex      int
+	url           string
+	statusMsg     *models.Message
 }
 
 func (b *DefaultBot) Handler(ctx context.Context, update *models.Update) {
-	lines := strings.Split(update.Message.Text, "\n")
-
-	for i, url := range lines {
-		go func(url string) {
-			isUrl := strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")
-			if !isUrl {
-				return // Skip non-URL lines
-			}
-
-			// Send initial status message for this URL
-			statusMsg, _ := b.bot.SendMessage(ctx, &bot.SendMessageParams{
-				ChatID: update.Message.Chat.ID,
-				Text:   fmt.Sprintf("%d. %s\nState: ⌛ queued...", i+1, url),
-				ReplyParameters: &models.ReplyParameters{
-					MessageID: update.Message.ID,
-				},
-				LinkPreviewOptions: &models.LinkPreviewOptions{
-					IsDisabled: ptr.ToPtr(true),
-				},
+	account, err := b.storage.GetAccountTelegram(ctx, sqlc.GetAccountTelegramParams{
+		TelegramID: pgtype.Int8{Int64: int64(update.Message.From.ID), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			account, err = b.storage.CreateAccountTelegram(ctx, sqlc.CreateAccountTelegramParams{
+				TelegramID:   update.Message.From.ID,
+				IsBot:        update.Message.From.IsBot,
+				FirstName:    update.Message.From.FirstName,
+				LastName:     update.Message.From.LastName,
+				Username:     pgtype.Text{String: update.Message.From.Username, Valid: true},
+				LanguageCode: update.Message.From.LanguageCode,
+				IsPremium:    update.Message.From.IsPremium,
 			})
-
-			// Create update channel for editting message (via MediaResult)
-			// Always remember to close the channel whether it's successful or not
-			updateMessageChan := make(chan MediaResult)
-			defer func() {
-				time.Sleep(30 * time.Second) // Give some time for final messages to be processed, for now it is for error handling of handleURL
-				close(updateMessageChan)
-			}()
-
-			// Create a goroutine to handle updates in channel updateMessageChan
-			go func() {
-				for result := range updateMessageChan {
-					// Complete the status message
-					if len(result.Medias) > 0 {
-						// Create media group for multiple medias
-						var mediaGroup []models.InputMedia
-
-						for _, media := range result.Medias {
-							mediaType := download.DetectFileType(media.Filename)
-							switch mediaType {
-							case "video":
-								inputVideo := &models.InputMediaVideo{
-									Media:           fmt.Sprintf("attach://%s", media.Filename),
-									MediaAttachment: media.Media,
-									Caption:         fmt.Sprintf("%d. %s\nState: %s", i+1, url, result.State),
-								}
-								mediaGroup = append(mediaGroup, inputVideo)
-							case "photo":
-								inputPhoto := &models.InputMediaPhoto{
-									Media:           fmt.Sprintf("attach://%s", media.Filename),
-									MediaAttachment: media.Media,
-									Caption:         fmt.Sprintf("%d. %s\nState: %s", i+1, url, result.State),
-								}
-								mediaGroup = append(mediaGroup, inputPhoto)
-							default:
-								logger.Log.Sugar().Errorf("Unsupported media type for file %s", media.Filename)
-								continue
-							}
-						}
-
-						// split 3
-						mediaGroup2 := mediaGroup[:len(mediaGroup)/3]
-						mediaGroup3 := mediaGroup[len(mediaGroup)/3 : len(mediaGroup)*2/3]
-						mediaGroup4 := mediaGroup[len(mediaGroup)*2/3:]
-						b.bot.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
-							ChatID: update.Message.Chat.ID,
-							Media:  mediaGroup3,
-							ReplyParameters: &models.ReplyParameters{
-								MessageID: update.Message.ID,
-							},
-						})
-
-						b.bot.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
-							ChatID: update.Message.Chat.ID,
-							Media:  mediaGroup4,
-							ReplyParameters: &models.ReplyParameters{
-								MessageID: update.Message.ID,
-							},
-						})
-
-						_, err := b.bot.SendMediaGroup(ctx, &bot.SendMediaGroupParams{
-							ChatID: update.Message.Chat.ID,
-							Media:  mediaGroup2,
-							ReplyParameters: &models.ReplyParameters{
-								MessageID: update.Message.ID,
-							},
-						})
-						if err != nil {
-							logger.Log.Sugar().Errorf("Failed to send media group: %v", err)
-							totalSize := int64(0)
-							for _, media := range result.Medias {
-								totalSize += media.Size
-							}
-
-							state := fmt.Sprintf("❌ failed to send media%s: %v", getSizeStr(totalSize), err)
-							if _, err = b.bot.EditMessageText(ctx, &bot.EditMessageTextParams{
-								ChatID:    update.Message.Chat.ID,
-								MessageID: statusMsg.ID,
-								Text:      fmt.Sprintf("%d. %s\nState: %s", i+1, url, state),
-								LinkPreviewOptions: &models.LinkPreviewOptions{
-									IsDisabled: ptr.ToPtr(true),
-								},
-							}); err != nil {
-								logger.Log.Sugar().Errorf("Failed to edit message text: %v", err)
-							}
-						} else {
-							// Successfully sent media, now delete the status message
-							_, err = b.bot.DeleteMessage(ctx, &bot.DeleteMessageParams{
-								ChatID:    update.Message.Chat.ID,
-								MessageID: statusMsg.ID,
-							})
-							if err != nil {
-								logger.Log.Sugar().Errorf("Failed to delete status message: %v", err)
-							}
-						}
-
-						// Close all media streams
-						for _, media := range result.Medias {
-							media.Media.Close()
-						}
-					} else {
-						// Update status message with the current state
-						_, err := b.bot.EditMessageText(ctx, &bot.EditMessageTextParams{
-							ChatID:    update.Message.Chat.ID,
-							MessageID: statusMsg.ID,
-							Text:      fmt.Sprintf("%d. %s\nState: %s", i+1, url, result.State),
-							LinkPreviewOptions: &models.LinkPreviewOptions{
-								IsDisabled: ptr.ToPtr(true),
-							},
-						})
-						if err != nil {
-							logger.Log.Sugar().Errorf("Failed to edit message text: %v", err)
-						}
-					}
-				}
-			}()
-
-			if err := b.handleURL(url, updateMessageChan); err != nil {
-				updateMessageChan <- MediaResult{
-					State: err.Error(),
-				}
+			if err != nil {
+				logger.Log.Sugar().Errorf("Failed to create account: %v", err)
+				return
 			}
-		}(url)
+		} else {
+			logger.Log.Sugar().Errorf("Failed to get account: %v", err)
+			return
+		}
+	}
+
+	urls := extractURLs(update.Message.Text)
+	for i, url := range urls {
+		go b.processURLAsync(ctx, account, update, url, i)
 	}
 }
 
-func (b *DefaultBot) handleURL(url string, updateMessageChan chan MediaResult) error {
-	attempts := config.GetConfig().VideoSaver.RetryCount
-
-	if err := common.DoWithRetry(common.RetryConfig{
-		Attempts: attempts,
-		Delay:    2 * time.Second,
-	}, func() error {
-		var (
-			directUrls []string
-		)
-
-		saver, err := b.GetVideoSaver(url)
-		if err != nil {
-			return fmt.Errorf("failed to get media saver: %w", err)
-		}
-
-		if err := b.browserPool.UseBrowser(func(ctx context.Context, browser *browserpool.Browser) error {
-			updateMessageChan <- MediaResult{
-				State: "🔎 getting info...",
-			}
-			logger.Log.Sugar().Infof("Processing URL: %s", url)
-
-			directUrls, err = saver.GetVideoURLs(ctx, browser.Browser, url)
-			if err != nil {
-				return fmt.Errorf("failed to get direct video URL: %w", err)
-			}
-
-			return nil
+func (b *DefaultBot) processURLAsync(ctx context.Context, account sqlc.AccountTelegram, update *models.Update, url string, index int) {
+	// Check subscription
+	if err := b.IsAccountAllow(ctx, account.ID, model.FeatureGetMedia, 1); err != nil {
+		logger.Log.Sugar().Errorf("Account %d is not allowed to download: %v", update.Message.From.ID, err)
+		// Send error message to user
+		if _, err := b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.Message.Chat.ID,
+			Text:   fmt.Sprintf("You are not allowed to download media: %v", err),
+			ReplyParameters: &models.ReplyParameters{
+				MessageID: update.Message.ID,
+			},
 		}); err != nil {
-			return err
+			logger.Log.Sugar().Errorf("Failed to send error message: %v", err)
+			return
 		}
 
-		var totalSize int64
-		var medias []MediaData
-
-		for j, directUrl := range directUrls {
-			fileSize, _ := download.GetFileSize(directUrl)
-			totalSize += fileSize
-			sizeStr := getSizeStr(fileSize)
-
-			// Update state to show which URL is being downloaded
-			updateMessageChan <- MediaResult{
-				State: fmt.Sprintf("⬇️ downloading media %d/%d...%s", j+1, len(directUrls), sizeStr),
-			}
-
-			req, err := http.NewRequest("GET", directUrl, nil)
-			if err != nil {
-				return fmt.Errorf("failed to create request for direct URL %s: %w", directUrl, err)
-			}
-
-			// Mimic a real browser
-			logger.Log.Sugar().Infof("downloading media from %s with user agent %s", directUrl, saver.GetUA())
-			req.Header.Set("User-Agent", saver.GetUA())
-			req.Header.Set("Accept", "*/*")
-			req.Header.Set("Accept-Language", "en-US,en;q=0.9,ru;q=0.8")
-			req.Header.Set("Accept-Encoding", "identity")
-
-			resp, err := http.DefaultClient.Do(req)
-			if err != nil {
-				return fmt.Errorf("failed to download video from %s: %w", directUrl, err)
-			}
-			if resp.StatusCode != http.StatusOK {
-				return fmt.Errorf("failed to download video from %s: HTTP %d %s", directUrl, resp.StatusCode, resp.Status)
-			}
-
-			medias = append(medias, MediaData{
-				Filename: saver.GetFilename(url, directUrl),
-				Size:     fileSize,
-				Media:    resp.Body,
-			})
-		}
-
-		sizeStr := getSizeStr(totalSize)
-
-		// Show final success state with count of medias
-		successState := fmt.Sprintf("✅ get media successfully%s", sizeStr)
-		if len(medias) > 1 {
-			successState = fmt.Sprintf("✅ got %d medias successfully%s", len(medias), sizeStr)
-		}
-
-		updateMessageChan <- MediaResult{
-			Medias: medias,
-			State:  successState,
-		}
-
-		return nil
-	}); err != nil {
-		return fmt.Errorf("failed to get media info after %d attempts: %w", attempts, err)
+		return
 	}
 
-	return nil
+	processCtx := &ProcessingContext{
+		ctx:           ctx,
+		chatID:        update.Message.Chat.ID,
+		originalMsgID: update.Message.ID,
+		urlIndex:      index,
+		url:           url,
+	}
+
+	// Send initial status message
+	statusMsg, err := b.sendInitialStatus(ctx, processCtx)
+	if err != nil {
+		logger.Log.Sugar().Errorf("Failed to send initial status: %v", err)
+		return
+	}
+	processCtx.statusMsg = statusMsg
+
+	processor := &MediaProcessor{
+		bot:        b,
+		processCtx: processCtx,
+		updateChan: make(chan MediaResult, 10),
+	}
+
+	// Start status updater goroutine
+	go processor.handleStatusUpdates()
+
+	// Process the URL
+	if err := processor.processURL(); err != nil {
+		processor.updateChan <- MediaResult{State: err.Error()}
+	}
+
+	// Clean up
+	time.Sleep(30 * time.Second)
+	close(processor.updateChan)
 }
 
-func getSizeStr(fileSize int64) string {
-	if fileSize == 0 {
-		return ""
+func (b *DefaultBot) sendInitialStatus(ctx context.Context, processCtx *ProcessingContext) (*models.Message, error) {
+	return b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: processCtx.chatID,
+		Text:   fmt.Sprintf("%d. %s\nState: ⌛ queued...", processCtx.urlIndex+1, processCtx.url),
+		ReplyParameters: &models.ReplyParameters{
+			MessageID: processCtx.originalMsgID,
+		},
+		LinkPreviewOptions: &models.LinkPreviewOptions{
+			IsDisabled: ptr.ToPtr(true),
+		},
+	})
+}
+
+func extractURLs(text string) []string {
+	lines := strings.Split(text, "\n")
+	var urls []string
+
+	for _, line := range lines {
+		if strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://") {
+			urls = append(urls, line)
+		}
 	}
-	return fmt.Sprintf(" (%s)", download.ByteCountBinary(fileSize))
+
+	return urls
 }

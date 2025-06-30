@@ -1,7 +1,7 @@
 package main
 
 import (
-	"botvideosaver/internal/model"
+	"botmediasaver/internal/model"
 	"fmt"
 )
 

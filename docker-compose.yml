@@ -11,7 +11,7 @@ volumes:
 
 services:
   app:
-    container_name: botvideosaver
+    container_name: botmediasaver
     build:
       context: .
       dockerfile: Dockerfile
@@ -30,7 +30,7 @@ services:
     environment:
       POSTGRES_USER: khoakomlem
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-peakkhoakomlempassword}
-      POSTGRES_DB: botvideosaver
+      POSTGRES_DB: botmediasaver
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:

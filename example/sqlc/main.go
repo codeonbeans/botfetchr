@@ -1,15 +1,15 @@
 package main
 
 import (
-	"botvideosaver/gen/sqlc"
-	"botvideosaver/internal/client/pgxpool"
+	"botmediasaver/generated/sqlc"
+	"botmediasaver/internal/client/pgxpool"
 	"context"
 	"fmt"
 )
 
 func main() {
 	pgpool, err := pgxpool.NewPgxpool(pgxpool.PgxpoolOptions{
-		Url:            "postgres://khoakomlem:peakkhoakomlempassword@localhost:5432/botvideosaver",
+		Url:            "postgres://khoakomlem:peakkhoakomlempassword@localhost:5432/botmediasaver",
 		MaxConnections: 10,
 	})
 	if err != nil {

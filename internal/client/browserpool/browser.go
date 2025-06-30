@@ -1,7 +1,7 @@
 package browserpool
 
 import (
-	"botvideosaver/internal/logger"
+	"botmediasaver/internal/logger"
 	"context"
 	"fmt"
 	"strconv"

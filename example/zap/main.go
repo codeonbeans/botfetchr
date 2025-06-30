@@ -1,6 +1,6 @@
 package main
 
-import "botvideosaver/internal/logger"
+import "botmediasaver/internal/logger"
 
 func main() {
 	logger.InitLogger()

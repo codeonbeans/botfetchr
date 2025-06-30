@@ -1,10 +1,10 @@
 package tgbot
 
 import (
-	"botvideosaver/generated/sqlc"
-	"botvideosaver/internal/logger"
-	"botvideosaver/internal/model"
-	"botvideosaver/internal/utils/ptr"
+	"botmediasaver/generated/sqlc"
+	"botmediasaver/internal/logger"
+	"botmediasaver/internal/model"
+	"botmediasaver/internal/utils/ptr"
 	"context"
 	"database/sql"
 	"errors"

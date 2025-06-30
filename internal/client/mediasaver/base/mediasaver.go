@@ -1,7 +1,7 @@
-package videosavermdl
+package mediasaverbase
 
 import (
-	"botvideosaver/internal/logger"
+	"botmediasaver/internal/logger"
 	"time"
 )
 

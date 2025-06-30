@@ -16,7 +16,7 @@ type Config struct {
 	Env         string      `yaml:"env"`
 	App         App         `yaml:"app"`
 	TelegramBot TelegramBot `yaml:"telegramBot"`
-	VideoSaver  VideoSaver  `yaml:"videoSaver"`
+	MediaSaver  MediaSaver  `yaml:"mediaSaver"`
 	Log         Log         `yaml:"log"`
 	Postgres    Postgres    `yaml:"postgres"`
 	Redis       Redis       `yaml:"redis"`
@@ -33,7 +33,7 @@ type TelegramBot struct {
 	Proxy    TelegramBotProxy `yaml:"proxy"`
 }
 
-type VideoSaver struct {
+type MediaSaver struct {
 	UseRandomUA       bool     `yaml:"useRandomUA"`       // Use random user agent for
 	UserAgents        []string `yaml:"userAgents"`        // List of user agents to use if UseRandomUA is false
 	Quality           string   `yaml:"quality"`           // Available options: low, high

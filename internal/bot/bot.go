@@ -1,12 +1,12 @@
 package tgbot
 
 import (
-	"botvideosaver/config"
-	"botvideosaver/internal/client/browserpool"
-	"botvideosaver/internal/client/mediasaver/instagram"
-	"botvideosaver/internal/client/mediasaver/vk"
-	"botvideosaver/internal/logger"
-	"botvideosaver/internal/storage"
+	"botmediasaver/config"
+	"botmediasaver/internal/client/browserpool"
+	"botmediasaver/internal/client/mediasaver/instagram"
+	"botmediasaver/internal/client/mediasaver/vk"
+	"botmediasaver/internal/logger"
+	"botmediasaver/internal/storage"
 	"context"
 	"crypto/rand"
 	"fmt"
@@ -144,7 +144,7 @@ func New(store *storage.Storage, cacheManager *marshaler.Marshaler) (*DefaultBot
 	return defaultBot, nil
 }
 
-func (b *DefaultBot) GetVideoSaver(url string) (MediaSaver, error) {
+func (b *DefaultBot) GetMediaSaver(url string) (MediaSaver, error) {
 	for saverType, factory := range mediaSaverFactory {
 		client, err := factory()
 		if err != nil {
@@ -165,11 +165,11 @@ func (b *DefaultBot) Start(ctx context.Context) {
 }
 
 func getUA() string {
-	if config.GetConfig().VideoSaver.UseRandomUA {
+	if config.GetConfig().MediaSaver.UseRandomUA {
 		return uarand.GetRandom()
 	}
 
-	uas := config.GetConfig().VideoSaver.UserAgents
+	uas := config.GetConfig().MediaSaver.UserAgents
 	if len(uas) == 0 {
 		return uarand.GetRandom()
 	}
@@ -183,12 +183,12 @@ func getUA() string {
 	return uas[randomIndex.Int64()]
 }
 
-func configMediaSaver(videoSaver MediaSaver) {
-	if videoSaver == nil {
+func configMediaSaver(mediaSaver MediaSaver) {
+	if mediaSaver == nil {
 		return
 	}
 
-	videoSaver.SetUserAgent(getUA())
-	videoSaver.SetQuality(config.GetConfig().VideoSaver.Quality)
-	videoSaver.SetTimeout(time.Duration(config.GetConfig().VideoSaver.Timeout) * time.Second)
+	mediaSaver.SetUserAgent(getUA())
+	mediaSaver.SetQuality(config.GetConfig().MediaSaver.Quality)
+	mediaSaver.SetTimeout(time.Duration(config.GetConfig().MediaSaver.Timeout) * time.Second)
 }

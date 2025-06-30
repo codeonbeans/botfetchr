@@ -1,9 +1,9 @@
 package storage
 
 import (
-	"botvideosaver/config"
-	"botvideosaver/internal/client/pgxpool"
-	"botvideosaver/internal/logger"
+	"botmediasaver/config"
+	"botmediasaver/internal/client/pgxpool"
+	"botmediasaver/internal/logger"
 	"database/sql"
 	"os"
 

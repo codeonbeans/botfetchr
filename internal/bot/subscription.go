@@ -1,8 +1,8 @@
 package tgbot
 
 import (
-	"botvideosaver/generated/sqlc"
-	"botvideosaver/internal/model"
+	"botmediasaver/generated/sqlc"
+	"botmediasaver/internal/model"
 	"context"
 	"errors"
 	"fmt"

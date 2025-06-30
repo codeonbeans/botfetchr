@@ -1,12 +1,12 @@
 package tgbot
 
 import (
-	"botvideosaver/config"
-	"botvideosaver/internal/client/browserpool"
-	"botvideosaver/internal/logger"
-	"botvideosaver/internal/utils/common"
-	"botvideosaver/internal/utils/download"
-	"botvideosaver/internal/utils/ptr"
+	"botmediasaver/config"
+	"botmediasaver/internal/client/browserpool"
+	"botmediasaver/internal/logger"
+	"botmediasaver/internal/utils/common"
+	"botmediasaver/internal/utils/download"
+	"botmediasaver/internal/utils/ptr"
 	"context"
 	"fmt"
 	"net/http"
@@ -30,7 +30,7 @@ func (mp *MediaProcessor) handleStatusUpdates() {
 }
 
 func (mp *MediaProcessor) processURL() error {
-	attempts := config.GetConfig().VideoSaver.RetryCount
+	attempts := config.GetConfig().MediaSaver.RetryCount
 
 	return common.DoWithRetry(common.RetryConfig{
 		Attempts: attempts,
@@ -40,7 +40,7 @@ func (mp *MediaProcessor) processURL() error {
 
 func (mp *MediaProcessor) attemptDownload() error {
 	// Get video saver
-	saver, err := mp.bot.GetVideoSaver(mp.processCtx.url)
+	saver, err := mp.bot.GetMediaSaver(mp.processCtx.url)
 	if err != nil {
 		return fmt.Errorf("failed to get media saver: %w", err)
 	}
@@ -200,7 +200,7 @@ func (mp *MediaProcessor) handleMediaSending(result MediaResult) {
 }
 
 func (mp *MediaProcessor) createMediaGroups(medias []MediaData) [][]models.InputMedia {
-	maxGroupSize := int64(config.GetConfig().VideoSaver.MaxGroupMediaSize * 1024 * 1024)
+	maxGroupSize := int64(config.GetConfig().MediaSaver.MaxGroupMediaSize * 1024 * 1024)
 
 	var groups [][]models.InputMedia
 	var currentGroup []models.InputMedia

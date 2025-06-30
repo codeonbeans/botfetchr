@@ -3,7 +3,7 @@ package logger
 import (
 	"os"
 
-	"botvideosaver/config"
+	"botmediasaver/config"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

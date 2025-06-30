@@ -1,10 +1,10 @@
 package vk
 
 import (
-	videosavermdl "botvideosaver/internal/client/mediasaver/base"
-	"botvideosaver/internal/logger"
-	"botvideosaver/internal/utils/common"
-	"botvideosaver/internal/utils/download"
+	mediasaverbase "botmediasaver/internal/client/mediasaver/base"
+	"botmediasaver/internal/logger"
+	"botmediasaver/internal/utils/common"
+	"botmediasaver/internal/utils/download"
 	"context"
 	"fmt"
 	"path/filepath"
@@ -19,12 +19,12 @@ import (
 var shortCodeRegex = regexp.MustCompile(`https:\/\/(m\.)?vkvideo\.ru\/video-(\d+)_(\d+)`)
 
 type clientImpl struct {
-	*videosavermdl.BaseClientImpl
+	*mediasaverbase.BaseClientImpl
 }
 
 func NewClient() *clientImpl {
 	return &clientImpl{
-		BaseClientImpl: videosavermdl.NewBaseClient(),
+		BaseClientImpl: mediasaverbase.NewBaseClient(),
 	}
 }
 

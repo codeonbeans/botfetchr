@@ -1,1 +1,1 @@
-docker compose -f docker-compose.yml -p botvideosaver up -d
+docker compose -f docker-compose.yml -p botmediasaver up -d

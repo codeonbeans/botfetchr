@@ -1,11 +1,11 @@
 package main
 
 import (
-	"botvideosaver/config"
-	tgbot "botvideosaver/internal/bot"
-	"botvideosaver/internal/client/pgxpool"
-	"botvideosaver/internal/logger"
-	"botvideosaver/internal/storage"
+	"botmediasaver/config"
+	tgbot "botmediasaver/internal/bot"
+	"botmediasaver/internal/client/pgxpool"
+	"botmediasaver/internal/logger"
+	"botmediasaver/internal/storage"
 	"context"
 	"time"
 

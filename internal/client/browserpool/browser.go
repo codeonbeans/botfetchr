@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
-	"github.com/go-rod/rod/lib/proto"
 )
 
 type Browser struct {
@@ -61,11 +60,11 @@ func NewBrowser(headless bool, proxy string) (*Browser, error) {
 		go browser.MustHandleAuth("user", "pass")()
 	}
 
-	if _, err = browser.Page(proto.TargetCreateTarget{
-		URL: "about:blank",
-	}); err != nil {
-		return nil, fmt.Errorf("failed to create empty page: %w", err)
-	}
+	// if _, err = browser.Page(proto.TargetCreateTarget{
+	// 	URL: "about:blank",
+	// }); err != nil {
+	// 	return nil, fmt.Errorf("failed to create empty page: %w", err)
+	// }
 
 	return &Browser{
 		Browser: browser,

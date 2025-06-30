@@ -29,11 +29,11 @@ func NewClient() *clientImpl {
 	}
 }
 
-func (c *clientImpl) GetVideoURLs(ctx context.Context, browser *rod.Browser, url string) (videoURLs []string, err error) {
-	logger.Log.Sugar().Infof("Opening page %s with user agent %s", url, c.UA)
+func (c *clientImpl) GetVideoURLs(ctx context.Context, browser *rod.Browser, ogUrl string) (videoURLs []string, err error) {
+	logger.Log.Sugar().Infof("Opening page %s with user agent %s", ogUrl, c.UA)
 	page, cancel := browser.
 		Context(ctx).
-		MustPage(url).
+		MustPage(ogUrl).
 		MustSetUserAgent(&proto.NetworkSetUserAgentOverride{
 			UserAgent: c.UA,
 		}).
@@ -45,7 +45,7 @@ func (c *clientImpl) GetVideoURLs(ctx context.Context, browser *rod.Browser, url
 		cancel()
 	}()
 
-	logger.Log.Sugar().Infof("Setting viewport for page %s", url)
+	logger.Log.Sugar().Infof("Setting viewport for page %s", ogUrl)
 	page.MustSetViewport(1000, 1000, 1, true)
 
 	page.MustReload()
@@ -62,9 +62,14 @@ func (c *clientImpl) GetVideoURLs(ctx context.Context, browser *rod.Browser, url
 				continue
 			}
 			urls = append(urls, url)
+
+			// Only take one video URL if it's a reel
+			if isReel(ogUrl) {
+				break
+			}
 		}
 
-		if isPost(url) {
+		if isPost(ogUrl) {
 			imageUrls := extractImageURLs(html)
 			if len(imageUrls) > 0 {
 				for _, marshaledURL := range imageUrls {
@@ -80,8 +85,6 @@ func (c *clientImpl) GetVideoURLs(ctx context.Context, browser *rod.Browser, url
 		if len(urls) > 0 {
 			return urls, nil
 		}
-
-		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -163,9 +166,10 @@ func extractImageURLs(text string) []string {
 }
 
 func isPost(url string) bool {
-	return strings.Contains(url, "/p/") || strings.Contains(url, "/tv/")
+	// Match common Instagram post patterns
+	return strings.Contains(url, "/p/") || strings.Contains(url, "/tv/") || strings.Contains(url, "/post/")
 }
 
 func isReel(url string) bool {
-	return strings.Contains(url, "/reel/") || strings.Contains(url, "/reels/videos/")
+	return strings.Contains(url, "/reel/") || strings.Contains(url, "/reels/")
 }

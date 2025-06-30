@@ -1,13 +1,11 @@
 package pgxpool
 
 import (
+	"botvideosaver/internal/logger"
 	"context"
 	"fmt"
 
-	"botvideosaver/internal/logger"
-
 	"github.com/jackc/pgx/v5/pgconn"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )

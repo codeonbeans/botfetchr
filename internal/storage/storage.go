@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"botvideosaver/gen/sqlc"
+	"botvideosaver/generated/sqlc"
 	"botvideosaver/internal/client/pgxpool"
 	"context"
 	"fmt"

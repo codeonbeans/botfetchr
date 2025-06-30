@@ -3,7 +3,7 @@ package pgxsqlc
 import (
 	"context"
 
-	"botvideosaver/gen/sqlc"
+	"botvideosaver/generated/sqlc"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"

@@ -39,8 +39,14 @@ public/
 package-lock.json
 .env.local
 
-prisma/schema.prisma
+prisma
 package.json
 package-lock.json
 
 log/
+
+# ignore stringer generated files
+*_string.go
+
+# ignore generated files
+generated/

@@ -34,6 +34,13 @@ postgres:
   maxIdleConnections: 10
   logQuery: false
 
+redis:
+  clusters:
+    - host: "host.docker.internal" # use "host.docker.internal" if you run app inside docker container
+      port: "6379"
+  password: ""
+  db: 0
+
 browserpool:
   headless: true # Run browser in headless mode, set to false if you want to see the browser UI
   poolSize: 10 # Number of browser instances to run concurrently

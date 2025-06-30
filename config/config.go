@@ -19,6 +19,7 @@ type Config struct {
 	VideoSaver  VideoSaver  `yaml:"videoSaver"`
 	Log         Log         `yaml:"log"`
 	Postgres    Postgres    `yaml:"postgres"`
+	Redis       Redis       `yaml:"redis"`
 	BrowserPool BrowserPool `yaml:"browserPool"`
 }
 
@@ -33,11 +34,12 @@ type TelegramBot struct {
 }
 
 type VideoSaver struct {
-	UseRandomUA bool     `yaml:"useRandomUA"` // Use random user agent for
-	UserAgents  []string `yaml:"userAgents"`  // List of user agents to use if UseRandomUA is false
-	Quality     string   `yaml:"quality"`     // Available options: low, high
-	RetryCount  int      `yaml:"retryCount"`  // Number of retries for failed
-	Timeout     int      `yaml:"timeout"`     // Timeout in seconds for each download
+	UseRandomUA       bool     `yaml:"useRandomUA"`       // Use random user agent for
+	UserAgents        []string `yaml:"userAgents"`        // List of user agents to use if UseRandomUA is false
+	Quality           string   `yaml:"quality"`           // Available options: low, high
+	RetryCount        int      `yaml:"retryCount"`        // Number of retries for failed
+	Timeout           int      `yaml:"timeout"`           // Timeout in seconds for each download
+	MaxGroupMediaSize int64    `yaml:"maxGroupMediaSize"` // Maximum size of media group in MB, if the group exceeds this size, it will be split into multiple messages
 }
 
 type TelegramBotProxy struct {
@@ -69,6 +71,13 @@ type Postgres struct {
 	Database        string `yaml:"database"`
 	MaxConnections  int32  `yaml:"maxConnections"`
 	MaxConnIdleTime int32  `yaml:"maxConnIdleTime"`
+}
+
+type Redis struct {
+	Host     string `yaml:"host"`     // Redis host, use "host.docker.internal" if you run app inside docker container
+	Port     string `yaml:"port"`     // Redis port
+	Password string `yaml:"password"` // Redis password
+	DB       int    `yaml:"db"`       // Redis database number, default is 0
 }
 
 type BrowserPool struct {

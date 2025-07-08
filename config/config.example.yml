@@ -4,11 +4,11 @@ app:
   name: "botmediasaver"
 
 telegramBot:
-  token: "<your-telegram-bot-token>"
+  token: "YOUR_TELEGRAM_BOT_TOKEN"
   logDebug: false
   proxy: # Optional proxy settings
     enabled: false # Set to true if you want to use a proxy for Telegram Bot API requests
-    type: "socks5" # Available options: socks5, mtproxy
+    type: "socks5" # Available options: socks5, (mtproxy is not supported yet)
     address: ""
     port: 1080
     username: "" # Optional, for authenticated proxies
@@ -22,23 +22,23 @@ mediaSaver:
   quality: "high" # Available options: low, high
   retryCount: 3 # Number of retries for failed tasks
   timeout: 15 # Timeout in seconds for each task
+  maxGroupMediaSize: 30 # Maximum size of media group in MB, if the group exceeds this size, it will be split into multiple messages (should be less than 45MB, Telegram limit is 50MB)
 
 postgres:
   url: "" # "postgresql://doadmin:... Neither url nor host/port/database/username/password is set
-  host: "" # use "host.docker.internal" if you run app inside docker container
+  host: "host.docker.internal" # use "host.docker.internal" if you run app inside docker container
   port: "5432"
-  database: ""
-  username: ""
-  password: ""
+  database: "botmediasaver"
+  username: "khoakomlem"
+  password: "peakkhoakomlempassword"
   maxConnections: 8
   maxIdleConnections: 10
   logQuery: false
 
 redis:
-  clusters:
   host: "host.docker.internal" # use "host.docker.internal" if you run app inside docker container
   port: "6379"
-  password: ""
+  password: "peakkhoakomlempassword"
   db: 0
 
 browserpool:

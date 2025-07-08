@@ -12,11 +12,22 @@ COPY go.mod go.sum ./
 # Download dependencies (this layer will be cached if go.mod/go.sum don't change)
 RUN go mod download
 
+# Install sqlc for code generation
+RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+# Install stringer
+RUN go install golang.org/x/tools/cmd/stringer@latest
+
 # Copy source code
 COPY ./main.go ./main.go
 COPY ./config ./config
 COPY ./internal ./internal
-COPY ./generated ./generated
+COPY ./queries ./queries
+COPY ./migrations ./migrations
+COPY ./sqlc.yaml ./sqlc.yaml
+
+# Run go generate to generate any required code
+RUN go generate ./...
 
 # Build the application with optimizations
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \

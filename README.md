@@ -362,7 +362,3 @@ The application includes comprehensive error handling:
 -   Adjust `taskQueueSize` based on memory constraints
 -   Optimize `retryCount` and `timeout` values for your use case
 -   Use headless mode (`browserpool.headless: true`) for better performance
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](https://claude.ai/chat/LICENSE) file for details.

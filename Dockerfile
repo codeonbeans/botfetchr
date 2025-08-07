@@ -39,15 +39,17 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # Option 1: Alpine with Chromium (smaller image)
 FROM alpine:3.21
 
+LABEL com.centurylinklabs.watchtower.enable="true"
+
 WORKDIR /app
 
 # Install Chrome and dependencies
 RUN apk add --no-cache \
-    chromium \
-    chromium-chromedriver \
-    ca-certificates \
-    tzdata \
-    dumb-init
+  chromium \
+  chromium-chromedriver \
+  ca-certificates \
+  tzdata \
+  dumb-init
 
 # Set Chrome binary path environment variable
 ENV CHROME_BIN=/usr/bin/chromium-browser
@@ -71,13 +73,16 @@ RUN mkdir -p ./logs
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+  adduser -u 1001 -S appuser -G appgroup
 
 # Change ownership of app directory
 RUN chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser
+
+ARG CONFIG_FILE
+ENV CONFIG_FILE ${CONFIG_FILE}
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]

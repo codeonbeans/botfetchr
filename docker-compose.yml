@@ -21,6 +21,8 @@ services:
       # - nats
     networks:
       - network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   postgres:
     container_name: postgres

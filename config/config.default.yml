@@ -33,6 +33,7 @@ postgres:
   password: "peakkhoakomlempassword"
   maxConnections: 8
   maxIdleConnections: 10
+  maxConnIdleTime: 30 # seconds
   logQuery: false
 
 redis:

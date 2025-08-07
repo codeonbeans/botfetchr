@@ -2,13 +2,13 @@ package config
 
 type Config struct {
 	Env         string      `yaml:"env" mapstructure:"env" validate:"required,oneof=dev staging production"`
-	App         App         `yaml:"app" mapstructure:"app" validate:"required,dive"`
-	TelegramBot TelegramBot `yaml:"telegramBot" mapstructure:"telegramBot" validate:"required,dive"`
-	MediaSaver  MediaSaver  `yaml:"mediaSaver" mapstructure:"mediaSaver" validate:"required,dive"`
-	Log         Log         `yaml:"log" mapstructure:"log" validate:"required,dive"`
-	Postgres    Postgres    `yaml:"postgres" mapstructure:"postgres" validate:"required,dive"`
-	Redis       Redis       `yaml:"redis" mapstructure:"redis" validate:"required,dive"`
-	BrowserPool BrowserPool `yaml:"browserPool" mapstructure:"browserPool" validate:"required,dive"`
+	App         App         `yaml:"app" mapstructure:"app" validate:"required"`
+	TelegramBot TelegramBot `yaml:"telegramBot" mapstructure:"telegramBot" validate:"required"`
+	MediaSaver  MediaSaver  `yaml:"mediaSaver" mapstructure:"mediaSaver" validate:"required"`
+	Log         Log         `yaml:"log" mapstructure:"log" validate:"required"`
+	Postgres    Postgres    `yaml:"postgres" mapstructure:"postgres" validate:"required"`
+	Redis       Redis       `yaml:"redis" mapstructure:"redis" validate:"required"`
+	BrowserPool BrowserPool `yaml:"browserpool" mapstructure:"browserpool" validate:"required"`
 }
 
 type App struct {
@@ -18,16 +18,7 @@ type App struct {
 type TelegramBot struct {
 	Token    string           `yaml:"token" mapstructure:"token" validate:"required"`
 	LogDebug bool             `yaml:"logDebug" mapstructure:"logDebug"`
-	Proxy    TelegramBotProxy `yaml:"proxy" mapstructure:"proxy" validate:"dive"`
-}
-
-type MediaSaver struct {
-	UseRandomUA       bool     `yaml:"useRandomUA" mapstructure:"useRandomUA"`
-	UserAgents        []string `yaml:"userAgents" mapstructure:"userAgents"`
-	Quality           string   `yaml:"quality" mapstructure:"quality" validate:"oneof=low high"`
-	RetryCount        int      `yaml:"retryCount" mapstructure:"retryCount" validate:"gte=0"`
-	Timeout           int      `yaml:"timeout" mapstructure:"timeout" validate:"gt=0"`
-	MaxGroupMediaSize int64    `yaml:"maxGroupMediaSize" mapstructure:"maxGroupMediaSize" validate:"gt=0"`
+	Proxy    TelegramBotProxy `yaml:"proxy" mapstructure:"proxy"`
 }
 
 type TelegramBotProxy struct {
@@ -37,6 +28,15 @@ type TelegramBotProxy struct {
 	Port     int    `yaml:"port" mapstructure:"port" validate:"gte=0,lte=65535"`
 	Username string `yaml:"username" mapstructure:"username"`
 	Password string `yaml:"password" mapstructure:"password"`
+}
+
+type MediaSaver struct {
+	UseRandomUA       bool     `yaml:"useRandomUA" mapstructure:"useRandomUA"`
+	UserAgents        []string `yaml:"userAgents" mapstructure:"userAgents"`
+	Quality           string   `yaml:"quality" mapstructure:"quality" validate:"oneof=low high"`
+	RetryCount        int      `yaml:"retryCount" mapstructure:"retryCount" validate:"gte=0"`
+	Timeout           int      `yaml:"timeout" mapstructure:"timeout" validate:"gt=0"`
+	MaxGroupMediaSize int64    `yaml:"maxGroupMediaSize" mapstructure:"maxGroupMediaSize" validate:"gt=0"`
 }
 
 type Log struct {
@@ -51,14 +51,16 @@ type Log struct {
 }
 
 type Postgres struct {
-	Url             string `yaml:"url" mapstructure:"url"`
-	Host            string `yaml:"host" mapstructure:"host" validate:"required_without=Url"`
-	Port            int    `yaml:"port" mapstructure:"port" validate:"required_without=Url"`
-	Username        string `yaml:"username" mapstructure:"username" validate:"required_without=Url"`
-	Password        string `yaml:"password" mapstructure:"password" validate:"required_without=Url"`
-	Database        string `yaml:"database" mapstructure:"database" validate:"required_without=Url"`
-	MaxConnections  int32  `yaml:"maxConnections" mapstructure:"maxConnections" validate:"gte=1"`
-	MaxConnIdleTime int32  `yaml:"maxConnIdleTime" mapstructure:"maxConnIdleTime" validate:"gte=0"`
+	Url                string `yaml:"url" mapstructure:"url"`
+	Host               string `yaml:"host" mapstructure:"host" validate:"required_without=Url"`
+	Port               int    `yaml:"port" mapstructure:"port" validate:"required_without=Url"`
+	Username           string `yaml:"username" mapstructure:"username" validate:"required_without=Url"`
+	Password           string `yaml:"password" mapstructure:"password" validate:"required_without=Url"`
+	Database           string `yaml:"database" mapstructure:"database" validate:"required_without=Url"`
+	MaxConnections     int32  `yaml:"maxConnections" mapstructure:"maxConnections" validate:"gte=1"`
+	MaxIdleConnections int32  `yaml:"maxIdleConnections" mapstructure:"maxIdleConnections" validate:"gte=0"`
+	MaxConnIdleTime    int32  `yaml:"maxConnIdleTime" mapstructure:"maxConnIdleTime" validate:"gte=0"`
+	LogQuery           bool   `yaml:"logQuery" mapstructure:"logQuery"`
 }
 
 type Redis struct {

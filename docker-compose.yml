@@ -23,12 +23,14 @@ services:
       - network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+    - ./config/config.dev.yml:/app/config/config.dev.yml
 
   postgres:
     container_name: postgres
     image: postgres:17-alpine
-    ports:
-      - "5432:5432"
+    # ports:
+    #   - "5432:5432"
     environment:
       POSTGRES_USER: khoakomlem
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-peakkhoakomlempassword}
@@ -48,8 +50,8 @@ services:
   redis:
     container_name: redis
     image: redis:8-alpine
-    ports:
-      - "6379:6379"
+    # ports:
+    #   - "6379:6379"
     volumes:
       - redis-data:/data
     networks:

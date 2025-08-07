@@ -27,7 +27,7 @@ go.work.sum
 .env
 
 config/config.*.yml
-!config/config.example.yml
+!config/config.default.yml
 
 tmp/
 

@@ -75,10 +75,17 @@ func New(store *storage.Storage, cacheManager *marshaler.Marshaler) (*DefaultBot
 		username := config.GetConfig().TelegramBot.Proxy.Username
 		password := config.GetConfig().TelegramBot.Proxy.Password
 
-		dialer, err := proxy.SOCKS5("tcp", address, &proxy.Auth{
-			User:     username,
-			Password: password,
-		}, proxy.Direct)
+		var auth *proxy.Auth
+		if username != "" && password != "" {
+			auth = &proxy.Auth{
+				User:     username,
+				Password: password,
+			}
+		} else {
+			logger.Log.Sugar().Warn("Proxy username or password not set, using anonymous proxy")
+		}
+
+		dialer, err := proxy.SOCKS5("tcp", address, auth, proxy.Direct)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create SOCKS5 dialer: %w", err)
 		}

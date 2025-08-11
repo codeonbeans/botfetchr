@@ -2,7 +2,10 @@
 FROM golang:1.24.3-alpine3.21 AS builder
 
 # Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+RUN apk add --no-cache  \
+    ca-certificates  \
+    git \
+    tzdata
 
 WORKDIR /app
 
@@ -45,11 +48,11 @@ WORKDIR /app
 
 # Install Chrome and dependencies
 RUN apk add --no-cache \
+  ca-certificates \
   chromium \
   chromium-chromedriver \
-  ca-certificates \
-  tzdata \
-  dumb-init
+  dumb-init \
+  tzdata
 
 # Set Chrome binary path environment variable
 ENV CHROME_BIN=/usr/bin/chromium-browser
@@ -68,15 +71,12 @@ COPY ./migrations ./migrations
 # Copy the binary
 COPY --from=builder /app/server ./server
 
-# Create folders for logs and data
-RUN mkdir -p ./logs
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S appgroup && \
-  adduser -u 1001 -S appuser -G appgroup
-
-# Change ownership of app directory
-RUN chown -R appuser:appgroup /app
+RUN mkdir -p ./logs && \
+    addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup && \
+    chown -R appuser:appgroup /app && \
+    addgroup -g 1001 -S appgroup
 
 # Switch to non-root user
 USER appuser

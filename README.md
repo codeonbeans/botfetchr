@@ -1,25 +1,25 @@
-
 # botmediasaver
 
-A high-performance Go application that downloads videos from various social media platforms using a browser pool architecture for concurrent task processing. Built with Telegram bot integration for easy user interaction.
+A high-performance Go application that downloads videos from various social media platforms using a browser pool
+architecture for concurrent task processing. Built with Telegram bot integration for easy user interaction.
 
 ## 🚀 Features
 
 ### Main Features
 
--   **Telegram Bot Integration**: Send a link to the bot and get the video downloaded and sent back
--   **Browser Pool Architecture**: Efficient concurrent task handling with multiple browser instances
--   **Multi-Platform Support**: Download videos from Instagram, VK, and more
--   **Proxy Support**: Built-in proxy configuration for both Telegram API and browser instances
--   **High Performance**: Redis-based task queuing and PostgreSQL for data persistence
--   **Smart User Agent Rotation**: Randomized or custom user agents to avoid detection
+- **Telegram Bot Integration**: Send a link to the bot and get the video downloaded and sent back
+- **Browser Pool Architecture**: Efficient concurrent task handling with multiple browser instances
+- **Multi-Platform Support**: Download videos from Instagram, VK, and more
+- **Proxy Support**: Built-in proxy configuration for both Telegram API and browser instances
+- **High Performance**: Redis-based task queuing and PostgreSQL for data persistence
+- **Smart User Agent Rotation**: Randomized or custom user agents to avoid detection
 
 ### Supported Platforms
 
 Public content only:
 
--   **Instagram**: Reels, Posts, ~~Stories~~
--   **VK**: Videos
+- **Instagram**: Reels, Posts, ~~Stories~~
+- **VK**: Videos
 
 ## 🏗️ Architecture
 
@@ -27,35 +27,36 @@ Public content only:
 
 #### Telegram Bot
 
--   Token-based authentication
--   Optional proxy support for API requests
--   Debug logging capabilities
--   SOCKS5 and MTProxy support
+- Token-based authentication
+- Optional proxy support for API requests
+- Debug logging capabilities
+- SOCKS5 and MTProxy support
 
 #### Browser Pool
 
-The main core of the application is a sophisticated browser pool system that manages multiple Chrome/Chromium instances to handle concurrent video download tasks efficiently.
+The main core of the application is a sophisticated browser pool system that manages multiple Chrome/Chromium instances
+to handle concurrent video download tasks efficiently.
 
 **Key Features:**
 
--   Configurable pool size for concurrent browser instances
--   Task queuing system with configurable buffer sizes
--   Headless or headed mode operation
--   Per-instance proxy configuration
--   Graceful shutdown handling with signal management
+- Configurable pool size for concurrent browser instances
+- Task queuing system with configurable buffer sizes
+- Headless or headed mode operation
+- Per-instance proxy configuration
+- Graceful shutdown handling with signal management
 
 #### Media Saver Engine
 
--   Smart user agent rotation (random or predefined list)
--   Quality selection (low/high)
--   Configurable retry mechanism
--   Timeout management for reliable downloads
+- Smart user agent rotation (random or predefined list)
+- Quality selection (low/high)
+- Configurable retry mechanism
+- Timeout management for reliable downloads
 
 #### Data Layer
 
--   **PostgreSQL**: Persistent data storage with connection pooling
--   **Redis**: Task queuing and caching with cluster support
--   **Migrations**: Versioned database schema management
+- **PostgreSQL**: Persistent data storage with connection pooling
+- **Redis**: Task queuing and caching with cluster support
+- **Migrations**: Versioned database schema management
 
 ## 🚀 Quick Start
 
@@ -63,14 +64,14 @@ The main core of the application is a sophisticated browser pool system that man
 
 Before running the application, you need to create a configuration file:
 
-1.  Copy the example configuration:
+1. Copy the example configuration:
 
-    ```bash
-    cp config.example.yml config.dev.yml
+   ```bash
+   cp config.example.yml config.dev.yml
 
-    ```
+   ```
 
-2.  Edit `config.dev.yml` with your settings (see Configuration section below)
+2. Edit `config.dev.yml` with your settings (see Configuration section below)
 
 ### Option 1: Docker Compose (Recommended)
 
@@ -83,9 +84,9 @@ docker compose -f docker-compose.yml -p botmediasaver up -d
 
 **Advantages:**
 
--   No system dependencies required
--   All tools pre-installed (Chrome, PostgreSQL, Redis)
--   Easy to manage and scale
+- No system dependencies required
+- All tools pre-installed (Chrome, PostgreSQL, Redis)
+- Easy to manage and scale
 
 ### Option 2: Native Installation
 
@@ -112,9 +113,9 @@ go build -o botmediasaver
 
 When using Docker Compose:
 
--   Docker and Docker Compose installed
--   Configuration file (`config.dev.yml`)
--   Telegram Bot Token
+- Docker and Docker Compose installed
+- Configuration file (`config.dev.yml`)
+- Telegram Bot Token
 
 **That's it!** The container includes all necessary dependencies.
 
@@ -124,14 +125,14 @@ When running natively, you need:
 
 #### 1. External Services
 
--   **PostgreSQL** database server
--   **Redis** server (single instance)
--   **Telegram Bot Token** (from @BotFather)
+- **PostgreSQL** database server
+- **Redis** server (single instance)
+- **Telegram Bot Token** (from @BotFather)
 
 #### 2. Go Tools
 
--   **Goose** - Database migration tool
--   **SQLC** - Generate type-safe Go code from SQL
+- **Goose** - Database migration tool
+- **SQLC** - Generate type-safe Go code from SQL
 
 #### 3. Chrome/Chromium Browser
 
@@ -198,7 +199,8 @@ chromium
 
 ## ⚙️ Configuration
 
-The application is configured via YAML files. Copy `config.example.yml` to your environment-specific config file and customize the following sections:
+The application is configured via YAML files. Copy `config.example.yml` to your environment-specific config file and
+customize the following sections:
 
 ### Environment Settings
 
@@ -230,7 +232,7 @@ telegramBot:
 ```yaml
 mediaSaver:
   useRandomUA: true # Random user agent per request
-  userAgents: [] # Custom user agents (fallback to random if empty)
+  userAgents: [ ] # Custom user agents (fallback to random if empty)
   quality: "high" # low or high
   retryCount: 3 # Failed task retries
   timeout: 15 # Seconds
@@ -276,7 +278,7 @@ redis:
 browserpool:
   headless: true # Set false to see browser UI
   poolSize: 10 # Concurrent browser instances
-  proxies: [] # List of proxy URLs (≤ poolSize)
+  proxies: [ ] # List of proxy URLs (≤ poolSize)
   taskQueueSize: 5 # Tasks per browser instance
 
 ```
@@ -332,9 +334,9 @@ sqlc generate
 
 Create different config files for different environments:
 
--   `config.dev.yml` - Development
--   `config.staging.yml` - Staging
--   `config.prod.yml` - Production
+- `config.dev.yml` - Development
+- `config.staging.yml` - Staging
+- `config.prod.yml` - Production
 
 Set the environment via the `env` field in your config file.
 
@@ -342,23 +344,23 @@ Set the environment via the `env` field in your config file.
 
 The application includes comprehensive error handling:
 
--   **Panic Recovery**: Tasks that panic are caught and handled gracefully
--   **Context Cancellation**: Proper cleanup on shutdown signals
--   **Browser Failure**: Individual browser failures don't affect the entire pool
--   **Timeout Management**: Configurable timeouts for long-running tasks
--   **Retry Logic**: Automatic retries for failed download attempts
--   **Connection Pooling**: Database connection management with automatic recovery
+- **Panic Recovery**: Tasks that panic are caught and handled gracefully
+- **Context Cancellation**: Proper cleanup on shutdown signals
+- **Browser Failure**: Individual browser failures don't affect the entire pool
+- **Timeout Management**: Configurable timeouts for long-running tasks
+- **Retry Logic**: Automatic retries for failed download attempts
+- **Connection Pooling**: Database connection management with automatic recovery
 
 ## 🚀 Scaling & Performance
 
 ### Horizontal Scaling
 
--   Increase `browserpool.poolSize` for more concurrent downloads
--   Add more Redis cluster nodes for better task distribution
--   Use database connection pooling for optimal resource usage
+- Increase `browserpool.poolSize` for more concurrent downloads
+- Add more Redis cluster nodes for better task distribution
+- Use database connection pooling for optimal resource usage
 
 ### Performance Tuning
 
--   Adjust `taskQueueSize` based on memory constraints
--   Optimize `retryCount` and `timeout` values for your use case
--   Use headless mode (`browserpool.headless: true`) for better performance
+- Adjust `taskQueueSize` based on memory constraints
+- Optimize `retryCount` and `timeout` values for your use case
+- Use headless mode (`browserpool.headless: true`) for better performance

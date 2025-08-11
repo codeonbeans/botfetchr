@@ -24,7 +24,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-    - ./config/config.dev.yml:/app/config/config.dev.yml
+      - ./config/config.dev.yml:/app/config/config.dev.yml
 
   postgres:
     container_name: postgres

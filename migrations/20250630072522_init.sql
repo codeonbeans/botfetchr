@@ -12,164 +12,177 @@ CREATE TYPE "subscription"."plan_intervals" AS ENUM ('MONTHLY', 'YEARLY');
 CREATE TYPE "subscription"."statuses" AS ENUM ('ACTIVE', 'CANCELED', 'EXPIRED', 'TRIALING');
 
 -- CreateTable
-CREATE TABLE "account"."telegrams" (
-    "id" BIGSERIAL NOT NULL,
-    "telegram_id" BIGINT NOT NULL,
-    "is_bot" BOOLEAN NOT NULL DEFAULT false,
-    "first_name" VARCHAR(64) NOT NULL,
-    "last_name" VARCHAR(64) NOT NULL,
-    "username" VARCHAR(32),
-    "language_code" VARCHAR(5) NOT NULL DEFAULT 'en',
-    "photo_url" TEXT,
-    "is_premium" BOOLEAN NOT NULL DEFAULT false,
-    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE "account"."telegrams"
+(
+  "id"            BIGSERIAL   NOT NULL,
+  "telegram_id"   BIGINT      NOT NULL,
+  "is_bot"        BOOLEAN     NOT NULL DEFAULT false,
+  "first_name"    VARCHAR(64) NOT NULL,
+  "last_name"     VARCHAR(64) NOT NULL,
+  "username"      VARCHAR(32),
+  "language_code" VARCHAR(5)  NOT NULL DEFAULT 'en',
+  "photo_url"     TEXT,
+  "is_premium"    BOOLEAN     NOT NULL DEFAULT false,
+  "created_at"    TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "telegrams_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "telegrams_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "account"."usage" (
-    "id" BIGSERIAL NOT NULL,
-    "account_id" BIGINT NOT NULL,
-    "feature" TEXT NOT NULL,
-    "usage" BIGINT NOT NULL DEFAULT 0,
-    "reset_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE "account"."usage"
+(
+  "id"         BIGSERIAL NOT NULL,
+  "account_id" BIGINT    NOT NULL,
+  "feature"    TEXT      NOT NULL,
+  "usage"      BIGINT    NOT NULL DEFAULT 0,
+  "reset_at"   TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "usage_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "usage_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "subscription"."plans" (
-    "id" TEXT NOT NULL,
+CREATE TABLE "subscription"."plans"
+(
+  "id" TEXT NOT NULL,
 
-    CONSTRAINT "plans_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "plans_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "subscription"."plan_prices" (
-    "id" BIGSERIAL NOT NULL,
-    "plan_id" TEXT NOT NULL,
-    "price" DOUBLE PRECISION NOT NULL,
-    "interval" "subscription"."plan_intervals" NOT NULL,
+CREATE TABLE "subscription"."plan_prices"
+(
+  "id"       BIGSERIAL                       NOT NULL,
+  "plan_id"  TEXT                            NOT NULL,
+  "price"    DOUBLE PRECISION                NOT NULL,
+  "interval" "subscription"."plan_intervals" NOT NULL,
 
-    CONSTRAINT "plan_prices_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "plan_prices_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "subscription"."plan_features" (
-    "id" BIGSERIAL NOT NULL,
-    "plan_id" TEXT NOT NULL,
-    "feature" TEXT NOT NULL,
-    "limit" BIGINT NOT NULL DEFAULT 0,
-    "days_to_reset" INTEGER NOT NULL DEFAULT 0,
+CREATE TABLE "subscription"."plan_features"
+(
+  "id"            BIGSERIAL NOT NULL,
+  "plan_id"       TEXT      NOT NULL,
+  "feature"       TEXT      NOT NULL,
+  "limit"         BIGINT    NOT NULL DEFAULT 0,
+  "days_to_reset" INTEGER   NOT NULL DEFAULT 0,
 
-    CONSTRAINT "plan_features_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "plan_features_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "subscription"."subscriptions" (
-    "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
-    "account_id" BIGINT NOT NULL,
-    "plan_id" TEXT NOT NULL,
-    "status" "subscription"."statuses" NOT NULL,
-    "start_date" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "end_date" TIMESTAMPTZ(3),
-    "cancel_at" TIMESTAMPTZ(3),
+CREATE TABLE "subscription"."subscriptions"
+(
+  "id"         TEXT                      NOT NULL DEFAULT gen_random_uuid(),
+  "account_id" BIGINT                    NOT NULL,
+  "plan_id"    TEXT                      NOT NULL,
+  "status"     "subscription"."statuses" NOT NULL,
+  "start_date" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "end_date"   TIMESTAMPTZ(3),
+  "cancel_at"  TIMESTAMPTZ(3),
 
-    CONSTRAINT "subscriptions_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "subscriptions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "subscription"."invoices" (
-    "id" TEXT NOT NULL DEFAULT gen_random_uuid(),
-    "subscription_id" TEXT NOT NULL,
-    "amount" DOUBLE PRECISION NOT NULL,
-    "issued_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "paid" BOOLEAN NOT NULL DEFAULT false,
+CREATE TABLE "subscription"."invoices"
+(
+  "id"              TEXT             NOT NULL DEFAULT gen_random_uuid(),
+  "subscription_id" TEXT             NOT NULL,
+  "amount"          DOUBLE PRECISION NOT NULL,
+  "issued_at"       TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "paid"            BOOLEAN          NOT NULL DEFAULT false,
 
-    CONSTRAINT "invoices_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "invoices_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "telegrams_telegram_id_key" ON "account"."telegrams"("telegram_id");
+CREATE UNIQUE INDEX "telegrams_telegram_id_key" ON "account"."telegrams" ("telegram_id");
 
 -- CreateIndex
-CREATE INDEX "telegrams_username_idx" ON "account"."telegrams"("username");
+CREATE INDEX "telegrams_username_idx" ON "account"."telegrams" ("username");
 
 -- CreateIndex
-CREATE INDEX "telegrams_telegram_id_idx" ON "account"."telegrams"("telegram_id");
+CREATE INDEX "telegrams_telegram_id_idx" ON "account"."telegrams" ("telegram_id");
 
 -- CreateIndex
-CREATE INDEX "telegrams_first_name_last_name_idx" ON "account"."telegrams"("first_name", "last_name");
+CREATE INDEX "telegrams_first_name_last_name_idx" ON "account"."telegrams" ("first_name", "last_name");
 
 -- CreateIndex
-CREATE INDEX "telegrams_is_premium_idx" ON "account"."telegrams"("is_premium");
+CREATE INDEX "telegrams_is_premium_idx" ON "account"."telegrams" ("is_premium");
 
 -- CreateIndex
-CREATE INDEX "telegrams_created_at_idx" ON "account"."telegrams"("created_at");
+CREATE INDEX "telegrams_created_at_idx" ON "account"."telegrams" ("created_at");
 
 -- CreateIndex
-CREATE INDEX "usage_account_id_idx" ON "account"."usage"("account_id");
+CREATE INDEX "usage_account_id_idx" ON "account"."usage" ("account_id");
 
 -- CreateIndex
-CREATE INDEX "usage_feature_idx" ON "account"."usage"("feature");
+CREATE INDEX "usage_feature_idx" ON "account"."usage" ("feature");
 
 -- CreateIndex
-CREATE INDEX "usage_reset_at_idx" ON "account"."usage"("reset_at");
+CREATE INDEX "usage_reset_at_idx" ON "account"."usage" ("reset_at");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "usage_account_id_feature_key" ON "account"."usage"("account_id", "feature");
+CREATE UNIQUE INDEX "usage_account_id_feature_key" ON "account"."usage" ("account_id", "feature");
 
 -- CreateIndex
-CREATE INDEX "plan_features_plan_id_idx" ON "subscription"."plan_features"("plan_id");
+CREATE INDEX "plan_features_plan_id_idx" ON "subscription"."plan_features" ("plan_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "plan_features_plan_id_feature_key" ON "subscription"."plan_features"("plan_id", "feature");
+CREATE UNIQUE INDEX "plan_features_plan_id_feature_key" ON "subscription"."plan_features" ("plan_id", "feature");
 
 -- CreateIndex
-CREATE INDEX "subscriptions_account_id_idx" ON "subscription"."subscriptions"("account_id");
+CREATE INDEX "subscriptions_account_id_idx" ON "subscription"."subscriptions" ("account_id");
 
 -- CreateIndex
-CREATE INDEX "subscriptions_plan_id_idx" ON "subscription"."subscriptions"("plan_id");
+CREATE INDEX "subscriptions_plan_id_idx" ON "subscription"."subscriptions" ("plan_id");
 
 -- CreateIndex
-CREATE INDEX "subscriptions_status_idx" ON "subscription"."subscriptions"("status");
+CREATE INDEX "subscriptions_status_idx" ON "subscription"."subscriptions" ("status");
 
 -- CreateIndex
-CREATE INDEX "subscriptions_start_date_idx" ON "subscription"."subscriptions"("start_date");
+CREATE INDEX "subscriptions_start_date_idx" ON "subscription"."subscriptions" ("start_date");
 
 -- CreateIndex
-CREATE INDEX "subscriptions_end_date_idx" ON "subscription"."subscriptions"("end_date");
+CREATE INDEX "subscriptions_end_date_idx" ON "subscription"."subscriptions" ("end_date");
 
 -- CreateIndex
-CREATE INDEX "subscriptions_cancel_at_idx" ON "subscription"."subscriptions"("cancel_at");
+CREATE INDEX "subscriptions_cancel_at_idx" ON "subscription"."subscriptions" ("cancel_at");
 
 -- CreateIndex
-CREATE INDEX "invoices_subscription_id_idx" ON "subscription"."invoices"("subscription_id");
+CREATE INDEX "invoices_subscription_id_idx" ON "subscription"."invoices" ("subscription_id");
 
 -- CreateIndex
-CREATE INDEX "invoices_issued_at_idx" ON "subscription"."invoices"("issued_at");
+CREATE INDEX "invoices_issued_at_idx" ON "subscription"."invoices" ("issued_at");
 
 -- CreateIndex
-CREATE INDEX "invoices_paid_idx" ON "subscription"."invoices"("paid");
+CREATE INDEX "invoices_paid_idx" ON "subscription"."invoices" ("paid");
 
 -- AddForeignKey
-ALTER TABLE "account"."usage" ADD CONSTRAINT "usage_account_id_fkey" FOREIGN KEY ("account_id") REFERENCES "account"."telegrams"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "account"."usage"
+  ADD CONSTRAINT "usage_account_id_fkey" FOREIGN KEY ("account_id") REFERENCES "account"."telegrams" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "subscription"."plan_prices" ADD CONSTRAINT "plan_prices_plan_id_fkey" FOREIGN KEY ("plan_id") REFERENCES "subscription"."plans"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "subscription"."plan_prices"
+  ADD CONSTRAINT "plan_prices_plan_id_fkey" FOREIGN KEY ("plan_id") REFERENCES "subscription"."plans" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "subscription"."plan_features" ADD CONSTRAINT "plan_features_plan_id_fkey" FOREIGN KEY ("plan_id") REFERENCES "subscription"."plans"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "subscription"."plan_features"
+  ADD CONSTRAINT "plan_features_plan_id_fkey" FOREIGN KEY ("plan_id") REFERENCES "subscription"."plans" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "subscription"."subscriptions" ADD CONSTRAINT "subscriptions_account_id_fkey" FOREIGN KEY ("account_id") REFERENCES "account"."telegrams"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "subscription"."subscriptions"
+  ADD CONSTRAINT "subscriptions_account_id_fkey" FOREIGN KEY ("account_id") REFERENCES "account"."telegrams" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "subscription"."subscriptions" ADD CONSTRAINT "subscriptions_plan_id_fkey" FOREIGN KEY ("plan_id") REFERENCES "subscription"."plans"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "subscription"."subscriptions"
+  ADD CONSTRAINT "subscriptions_plan_id_fkey" FOREIGN KEY ("plan_id") REFERENCES "subscription"."plans" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "subscription"."invoices" ADD CONSTRAINT "invoices_subscription_id_fkey" FOREIGN KEY ("subscription_id") REFERENCES "subscription"."subscriptions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "subscription"."invoices"
+  ADD CONSTRAINT "invoices_subscription_id_fkey" FOREIGN KEY ("subscription_id") REFERENCES "subscription"."subscriptions" ("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- +goose Down
 -- RemoveForeignKey

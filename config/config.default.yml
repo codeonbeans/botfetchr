@@ -45,7 +45,7 @@ redis:
 browserpool:
   headless: true # Run browser in headless mode, set to false if you want to see the browser UI
   poolSize: 10 # Number of browser instances to run concurrently
-  proxies: [] # List of proxy URLs to use for browser instances, equals or less than poolSize (protocol://username:password@host:port)
+  proxies: [ ] # List of proxy URLs to use for browser instances, equals or less than poolSize (protocol://username:password@host:port)
   taskQueueSize: 5 # Maximum number of tasks each browser instance can handle concurrently
 
 log:

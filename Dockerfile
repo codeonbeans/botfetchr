@@ -3,9 +3,9 @@ FROM golang:1.24.3-alpine3.21 AS builder
 
 # Install build dependencies
 RUN apk add --no-cache  \
-    ca-certificates  \
-    git \
-    tzdata
+  ca-certificates  \
+  git \
+  tzdata
 
 WORKDIR /app
 
@@ -73,10 +73,9 @@ COPY --from=builder /app/server ./server
 
 
 RUN mkdir -p ./logs && \
-    addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup && \
-    chown -R appuser:appgroup /app && \
-    addgroup -g 1001 -S appgroup
+  addgroup -g 1001 -S appgroup && \
+  adduser -u 1001 -S appuser -G appgroup && \
+  chown -R appuser:appgroup /app
 
 # Switch to non-root user
 USER appuser

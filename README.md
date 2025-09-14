@@ -1,4 +1,4 @@
-# botmediasaver
+# botfetchr
 
 A high-performance Go application that downloads videos from various social media platforms using a browser pool
 architecture for concurrent task processing. Built with Telegram bot integration for easy user interaction.
@@ -75,10 +75,10 @@ Before running the application, you need to create a configuration file:
 
 ### Option 1: Docker Compose (Recommended)
 
-The easiest way to run botmediasaver:
+The easiest way to run botfetchr:
 
 ```bash
-docker compose -f docker-compose.yml -p botmediasaver up -d
+docker compose -f docker-compose.yml -p botfetchr up -d
 
 ```
 
@@ -102,8 +102,8 @@ go install github.com/pressly/goose/v3/cmd/goose@latest
 go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
 # 3. Build and run
-go build -o botmediasaver
-./botmediasaver
+go build -o botfetchr
+./botfetchr
 
 ```
 
@@ -207,7 +207,7 @@ customize the following sections:
 ```yaml
 env: "dev" # Available options: dev, staging, production
 app:
-  name: "botmediasaver"
+  name: "botfetchr"
 
 ```
 
@@ -249,7 +249,7 @@ postgres:
   # Option 2: Individual parameters
   host: "localhost" # Use "host.docker.internal" for Docker
   port: "5432"
-  database: "botmediasaver"
+  database: "botfetchr"
   username: "your_username"
   password: "your_password"
 

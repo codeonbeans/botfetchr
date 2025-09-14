@@ -1,11 +1,12 @@
 package browserpool
 
 import (
-	"botmediasaver/internal/logger"
 	"context"
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/codeonbeans/botfetchr/internal/logger"
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"

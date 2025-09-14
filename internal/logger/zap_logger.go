@@ -3,7 +3,7 @@ package logger
 import (
 	"os"
 
-	"botmediasaver/config"
+	"github.com/codeonbeans/botfetchr/config"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

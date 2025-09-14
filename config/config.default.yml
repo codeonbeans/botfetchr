@@ -1,7 +1,7 @@
 env: "dev" # Available options: dev, staging, production
 
 app:
-  name: "botmediasaver"
+  name: "botfetchr"
 
 telegramBot:
   token: "YOUR_TELEGRAM_BOT_TOKEN"
@@ -28,9 +28,9 @@ postgres:
   url: "" # "postgresql://doadmin:... Neither url nor host/port/database/username/password is set
   host: "host.docker.internal" # use "host.docker.internal" if you run app inside docker container
   port: "5432"
-  database: "botmediasaver"
-  username: "khoakomlem"
-  password: "peakkhoakomlempassword"
+  database: "botfetchr"
+  username: "codeonbeans"
+  password: "peakcodeonbeanspassword"
   maxConnections: 8
   maxIdleConnections: 10
   maxConnIdleTime: 30 # seconds
@@ -39,7 +39,7 @@ postgres:
 redis:
   host: "host.docker.internal" # use "host.docker.internal" if you run app inside docker container
   port: "6379"
-  password: "peakkhoakomlempassword"
+  password: "peakcodeonbeanspassword"
   db: 0
 
 browserpool:

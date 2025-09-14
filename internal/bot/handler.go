@@ -1,10 +1,6 @@
 package tgbot
 
 import (
-	"botmediasaver/generated/sqlc"
-	"botmediasaver/internal/logger"
-	"botmediasaver/internal/model"
-	"botmediasaver/internal/utils/ptr"
 	"context"
 	"database/sql"
 	"errors"
@@ -12,6 +8,11 @@ import (
 	"io"
 	"strings"
 	"time"
+
+	"github.com/codeonbeans/botfetchr/generated/sqlc"
+	"github.com/codeonbeans/botfetchr/internal/logger"
+	"github.com/codeonbeans/botfetchr/internal/model"
+	"github.com/codeonbeans/botfetchr/internal/utils/ptr"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"

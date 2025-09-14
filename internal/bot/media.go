@@ -1,16 +1,17 @@
 package tgbot
 
 import (
-	"botmediasaver/config"
-	"botmediasaver/internal/client/browserpool"
-	"botmediasaver/internal/logger"
-	"botmediasaver/internal/utils/common"
-	"botmediasaver/internal/utils/download"
-	"botmediasaver/internal/utils/ptr"
 	"context"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/codeonbeans/botfetchr/config"
+	"github.com/codeonbeans/botfetchr/internal/client/browserpool"
+	"github.com/codeonbeans/botfetchr/internal/logger"
+	"github.com/codeonbeans/botfetchr/internal/utils/common"
+	"github.com/codeonbeans/botfetchr/internal/utils/download"
+	"github.com/codeonbeans/botfetchr/internal/utils/ptr"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"

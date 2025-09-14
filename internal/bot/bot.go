@@ -1,12 +1,6 @@
 package tgbot
 
 import (
-	"botmediasaver/config"
-	"botmediasaver/internal/client/browserpool"
-	"botmediasaver/internal/client/mediasaver/instagram"
-	"botmediasaver/internal/client/mediasaver/vk"
-	"botmediasaver/internal/logger"
-	"botmediasaver/internal/storage"
 	"context"
 	"crypto/rand"
 	"fmt"
@@ -16,6 +10,13 @@ import (
 	"runtime/debug"
 	"sync"
 	"time"
+
+	"github.com/codeonbeans/botfetchr/config"
+	"github.com/codeonbeans/botfetchr/internal/client/browserpool"
+	"github.com/codeonbeans/botfetchr/internal/client/mediasaver/instagram"
+	"github.com/codeonbeans/botfetchr/internal/client/mediasaver/vk"
+	"github.com/codeonbeans/botfetchr/internal/logger"
+	"github.com/codeonbeans/botfetchr/internal/storage"
 
 	"github.com/corpix/uarand"
 	"github.com/eko/gocache/lib/v4/marshaler"

@@ -1,4 +1,4 @@
-module botmediasaver
+module github.com/codeonbeans/botfetchr
 
 go 1.24.3
 

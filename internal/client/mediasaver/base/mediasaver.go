@@ -1,7 +1,7 @@
 package mediasaverbase
 
 import (
-	"botmediasaver/internal/logger"
+	"github.com/codeonbeans/botfetchr/internal/logger"
 	"time"
 )
 

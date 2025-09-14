@@ -1,12 +1,12 @@
 package vk
 
 import (
-	mediasaverbase "botmediasaver/internal/client/mediasaver/base"
-	"botmediasaver/internal/logger"
-	"botmediasaver/internal/utils/common"
-	"botmediasaver/internal/utils/download"
 	"context"
 	"fmt"
+	mediasaverbase "github.com/codeonbeans/botfetchr/internal/client/mediasaver/base"
+	"github.com/codeonbeans/botfetchr/internal/logger"
+	"github.com/codeonbeans/botfetchr/internal/utils/common"
+	"github.com/codeonbeans/botfetchr/internal/utils/download"
 	"path/filepath"
 	"regexp"
 	"time"

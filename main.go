@@ -1,12 +1,12 @@
 package main
 
 import (
-	"botmediasaver/config"
-	tgbot "botmediasaver/internal/bot"
-	"botmediasaver/internal/client/pgxpool"
-	"botmediasaver/internal/logger"
-	"botmediasaver/internal/storage"
 	"context"
+	"github.com/codeonbeans/botfetchr/config"
+	tgbot "github.com/codeonbeans/botfetchr/internal/bot"
+	"github.com/codeonbeans/botfetchr/internal/client/pgxpool"
+	"github.com/codeonbeans/botfetchr/internal/logger"
+	"github.com/codeonbeans/botfetchr/internal/storage"
 	"time"
 
 	"github.com/eko/gocache/lib/v4/cache"

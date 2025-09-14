@@ -1,9 +1,9 @@
 package pgxpool
 
 import (
-	"botmediasaver/internal/logger"
 	"context"
 	"fmt"
+	"github.com/codeonbeans/botfetchr/internal/logger"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"

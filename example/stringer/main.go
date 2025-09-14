@@ -1,8 +1,8 @@
 package main
 
 import (
-	"botmediasaver/internal/model"
 	"fmt"
+	"github.com/codeonbeans/botfetchr/internal/model"
 )
 
 func main() {

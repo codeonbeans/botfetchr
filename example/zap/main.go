@@ -1,6 +1,6 @@
 package main
 
-import "botmediasaver/internal/logger"
+import "github.com/codeonbeans/botfetchr/internal/logger"
 
 func main() {
 	logger.InitLogger()

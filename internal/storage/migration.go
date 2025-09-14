@@ -1,10 +1,10 @@
 package storage
 
 import (
-	"botmediasaver/config"
-	"botmediasaver/internal/client/pgxpool"
-	"botmediasaver/internal/logger"
 	"database/sql"
+	"github.com/codeonbeans/botfetchr/config"
+	"github.com/codeonbeans/botfetchr/internal/client/pgxpool"
+	"github.com/codeonbeans/botfetchr/internal/logger"
 	"os"
 
 	_ "github.com/lib/pq"

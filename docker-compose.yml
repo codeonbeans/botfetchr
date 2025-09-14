@@ -11,7 +11,7 @@ volumes:
 
 services:
   app:
-    container_name: botmediasaver
+    container_name: botfetchr
     build:
       context: .
       dockerfile: Dockerfile
@@ -32,15 +32,15 @@ services:
     # ports:
     #   - "5432:5432"
     environment:
-      POSTGRES_USER: khoakomlem
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-peakkhoakomlempassword}
-      POSTGRES_DB: botmediasaver
+      POSTGRES_USER: codeonbeans
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-peakcodeonbeanspassword}
+      POSTGRES_DB: botfetchr
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U khoakomlem -d khoakomlem" ]
+      test: [ "CMD-SHELL", "pg_isready -U codeonbeans -d codeonbeans" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -56,7 +56,7 @@ services:
       - redis-data:/data
     networks:
       - network
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-peakkhoakomlempassword}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-peakcodeonbeanspassword}
     healthcheck:
       test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
       interval: 10s

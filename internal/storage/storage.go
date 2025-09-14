@@ -1,10 +1,10 @@
 package storage
 
 import (
-	"botmediasaver/generated/sqlc"
-	"botmediasaver/internal/client/pgxpool"
 	"context"
 	"fmt"
+	"github.com/codeonbeans/botfetchr/generated/sqlc"
+	"github.com/codeonbeans/botfetchr/internal/client/pgxpool"
 
 	"github.com/jackc/pgx/v5"
 )

@@ -1,11 +1,11 @@
 package tgbot
 
 import (
-	"botmediasaver/generated/sqlc"
-	"botmediasaver/internal/model"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/codeonbeans/botfetchr/generated/sqlc"
+	"github.com/codeonbeans/botfetchr/internal/model"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
